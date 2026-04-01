@@ -1,18 +1,19 @@
 const express = require('express')
 const cors = require('cors')
 const prisma = require('./prisma/client')
-
 require('dotenv').config()
+
 const authRoutes = require('./routes/auth')
+const shopRoutes = require('./routes/shop')
+
 const app = express()
 
 app.use(cors({ origin: 'http://localhost:5173' }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-
-//rute
 app.use('/api/auth', authRoutes)
+app.use('/api/shop', shopRoutes)
 
 app.get('/', async (req, res) => {
   try {
