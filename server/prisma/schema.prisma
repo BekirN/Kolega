@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                  String             @id @default(uuid())
+  email               String             @unique
+  password            String
+  firstName           String
+  lastName            String
+  university          String?
+  faculty             String?
+  yearOfStudy         Int?
+
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  verificationMethod  VerificationMethod?
+  verificationDocUrl  String?
+
+  role                Role               @default(STUDENT)
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationMethod {
+  STUDENT_EMAIL
+  DOCUMENT
+  REFERRAL
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
