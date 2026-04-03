@@ -42,6 +42,13 @@ model User {
   conversations       ConversationParticipant[]
   notifications       Notification[]
 
+  studentJobs   StudentJob[]
+  sentConnections     Connection[] @relation("SentConnections")
+  receivedConnections Connection[] @relation("ReceivedConnections")
+  
+  activitiesReceived  Activity[] @relation("ActivityReceiver")
+  activitiesCaused    Activity[] @relation("ActivityActor")
+  
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 }
@@ -311,15 +318,14 @@ enum CompanySize {
 
 model CommunityPost {
   id        String             @id @default(uuid())
-  title     String
+  title     String?
   content   String
-  category  PostCategory
+  category  PostCategory       @default(OSTALO)
   images    String[]
   isPinned  Boolean            @default(false)
 
   authorId  String
   author    User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
   comments  CommunityComment[]
 
   createdAt DateTime           @default(now())
@@ -379,11 +385,16 @@ model EventAttendee {
 
 model Conversation {
   id           String                    @id @default(uuid())
+  isGroup      Boolean                   @default(false)
+  name         String?
+  groupImage   String?
+  adminId      String?
+
   participants ConversationParticipant[]
   messages     Message[]
 
   createdAt    DateTime                  @default(now())
-  updatedAt    DateTime                  @updatedAt
+  updatedAt    DateTime                  @updatedAt              
 }
 
 model ConversationParticipant {
@@ -409,6 +420,15 @@ model Message {
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
   createdAt      DateTime     @default(now())
+}
+
+model ConversationRead {
+  id             String   @id @default(uuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime @default(now())
+
+  @@unique([conversationId, userId])
 }
 
 // ================================
@@ -437,4 +457,115 @@ enum NotificationType {
   VERIFICATION_REJECTED
   NEW_REVIEW
   GENERAL
+}
+
+
+
+//CONNECTION
+
+model Connection {
+  id          String           @id @default(uuid())
+  status      ConnectionStatus @default(PENDING)
+
+  senderId    String
+  sender      User             @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId  String
+  receiver    User             @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+
+
+
+model Activity {
+  id          String       @id @default(uuid())
+  type        ActivityType
+  message     String
+  isRead      Boolean      @default(false)
+  link        String?
+
+  // Ko je uzrokovao aktivnost
+  actorId     String?
+  actor       User?        @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  // Ko prima aktivnost
+  userId      String
+  user        User         @relation("ActivityReceiver", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Referenca na povezani objekat
+  referenceId String?
+
+  createdAt   DateTime     @default(now())
+}
+
+enum ActivityType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  BOOKING_REQUEST
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  SHOP_ITEM_INTEREST
+  COMMUNITY_COMMENT
+  INTERNSHIP_REVIEW
+  MATERIAL_DOWNLOAD
+  EVENT_REMINDER
+  GENERAL
+}
+
+
+model StudentJob {
+  id           String      @id @default(uuid())
+  title        String
+  description  String
+  type         JobType
+  category     JobCategory
+  location     String?
+  isRemote     Boolean     @default(false)
+  salary       Float?
+  salaryPeriod SalaryPeriod?
+  hours        String?
+  contactEmail String?
+  contactPhone String?
+  isActive     Boolean     @default(true)
+
+  authorId     String
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+enum JobType {
+  NUDIM    // nudim posao
+  TRAZIM   // tražim posao
+}
+
+enum JobCategory {
+  UGOSTITELJSTVO
+  TRGOVINA
+  ADMINISTRACIJA
+  IT
+  TUTORING
+  DOSTAVA
+  PROMOCIJA
+  FIZICKI_RAD
+  OSTALO
+}
+
+enum SalaryPeriod {
+  PO_SATU
+  PO_DANU
+  PO_MJESECU
+  DOGOVOR
 }

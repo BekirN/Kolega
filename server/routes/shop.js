@@ -6,9 +6,9 @@ const {
   createItem,
   updateItem,
   deleteItem,
-  getMyItems
+  getMyItems,
 } = require('../controllers/shopController')
-const { protect, adminOnly } = require('../middleware/auth')
+const { protect } = require('../middleware/auth')
 
 router.get('/', getItems)
 router.get('/my-items', protect, getMyItems)

@@ -14,3 +14,27 @@ export const getMe = async () => {
   const response = await api.get('/auth/me')
   return response.data
 }
+
+export const getUserProfile = async (id) => {
+  const response = await api.get(`/auth/profile/${id}`)
+  return response.data
+}
+
+export const updateProfile = async (data) => {
+  const response = await api.put('/auth/profile', data)
+  return response.data
+}
+
+export const updateProfileImage = async (file) => {
+  const formData = new FormData()
+  formData.append('image', file)
+  const response = await api.put('/auth/profile/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+export const searchUsers = async (q) => {
+  const response = await api.get(`/auth/search?q=${q}`)
+  return response.data
+}

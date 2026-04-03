@@ -5,20 +5,13 @@ import { register } from '../api/auth'
 export default function Register() {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    university: '',
-    faculty: '',
-    yearOfStudy: '',
+    firstName: '', lastName: '', email: '', password: '',
+    university: '', faculty: '', yearOfStudy: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -36,131 +29,168 @@ export default function Register() {
     }
   }
 
+  const inputStyle = {
+    background: 'white',
+    border: '1.5px solid #E5E5EA',
+    color: '#1C1C1E',
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md p-8">
-        
+    <div className="min-h-screen flex items-center justify-center px-4 py-8"
+      style={{ background: '#F5F5F0' }}>
+      <div className="w-full max-w-md">
+
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-indigo-600">KOLEGA</h1>
-          <p className="text-gray-500 mt-1">Studentski hub za Sarajevo</p>
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
+              <span className="text-white font-black text-lg">K</span>
+            </div>
+            <span className="font-bold text-2xl text-gray-900">KOLEGA</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Kreiraj nalog</h1>
+          <p className="text-gray-500 text-sm">Pridruži se studentskoj zajednici</p>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">Kreiraj nalog</h2>
+        <div className="rounded-2xl p-8" style={{ background: 'white', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
-            {error}
-          </div>
-        )}
+          {error && (
+            <div className="px-4 py-3 rounded-xl mb-5 text-sm flex items-center gap-2"
+              style={{ background: '#FFF0ED', color: '#FF3B30', border: '1px solid #FFCCC7' }}>
+              <span>⚠️</span> {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Ime *</label>
+                <input
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                  style={inputStyle}
+                  placeholder="Ime"
+                  onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                  onBlur={e => e.target.style.borderColor = '#E5E5EA'}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Prezime *</label>
+                <input
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                  style={inputStyle}
+                  placeholder="Prezime"
+                  onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                  onBlur={e => e.target.style.borderColor = '#E5E5EA'}
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Ime</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Email *</label>
               <input
-                name="firstName"
-                value={formData.firstName}
+                name="email"
+                type="email"
+                value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="Ime"
+                className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                style={inputStyle}
+                placeholder="email@gmail.com"
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
+
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Prezime</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Password *</label>
               <input
-                name="lastName"
-                value={formData.lastName}
+                name="password"
+                type="password"
+                value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="Prezime"
+                className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                style={inputStyle}
+                placeholder="••••••••"
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
-          </div>
 
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Email</label>
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="email@gmail.com"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Password</label>
-            <input
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Univerzitet</label>
-            <input
-              name="university"
-              value={formData.university}
-              onChange={handleChange}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              placeholder="Univerzitet u Sarajevu"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Fakultet</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Univerzitet</label>
               <input
-                name="faculty"
-                value={formData.faculty}
+                name="university"
+                value={formData.university}
                 onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="ETF"
+                className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                style={inputStyle}
+                placeholder="Univerzitet u Sarajevu"
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Godina studija</label>
-              <select
-                name="yearOfStudy"
-                value={formData.yearOfStudy}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              >
-                <option value="">Odaberi</option>
-                <option value="1">1. godina</option>
-                <option value="2">2. godina</option>
-                <option value="3">3. godina</option>
-                <option value="4">4. godina</option>
-                <option value="5">5. godina</option>
-              </select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Fakultet</label>
+                <input
+                  name="faculty"
+                  value={formData.faculty}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                  style={inputStyle}
+                  placeholder="ETF"
+                  onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                  onBlur={e => e.target.style.borderColor = '#E5E5EA'}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Godina</label>
+                <select
+                  name="yearOfStudy"
+                  value={formData.yearOfStudy}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition"
+                  style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                  onBlur={e => e.target.style.borderColor = '#E5E5EA'}
+                >
+                  <option value="">Odaberi</option>
+                  {[1,2,3,4,5].map(y => (
+                    <option key={y} value={y}>{y}. godina</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50"
-          >
-            {loading ? 'Kreiranje naloga...' : 'Registruj se'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50 mt-2"
+              style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}
+            >
+              {loading ? 'Kreiranje naloga...' : 'Registruj se 🎓'}
+            </button>
+          </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Već imaš nalog?{' '}
-          <Link to="/login" className="text-indigo-600 hover:underline font-medium">
-            Prijavi se
-          </Link>
-        </p>
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Već imaš nalog?{' '}
+            <Link to="/login" className="font-semibold hover:opacity-80 transition"
+              style={{ color: '#FF6B35' }}>
+              Prijavi se
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

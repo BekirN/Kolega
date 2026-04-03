@@ -1,0 +1,23 @@
+-- CreateEnum
+CREATE TYPE "ActivityType" AS ENUM ('CONNECTION_REQUEST', 'CONNECTION_ACCEPTED', 'BOOKING_REQUEST', 'BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'SHOP_ITEM_INTEREST', 'COMMUNITY_COMMENT', 'INTERNSHIP_REVIEW', 'MATERIAL_DOWNLOAD', 'EVENT_REMINDER', 'GENERAL');
+
+-- CreateTable
+CREATE TABLE "Activity" (
+    "id" TEXT NOT NULL,
+    "type" "ActivityType" NOT NULL,
+    "message" TEXT NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "link" TEXT,
+    "actorId" TEXT,
+    "userId" TEXT NOT NULL,
+    "referenceId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Activity_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

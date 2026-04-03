@@ -10,27 +10,29 @@ const CONDITIONS = [
 ]
 
 const CATEGORIES = [
-  { value: 'KNJIGE', label: 'Knjige' },
-  { value: 'SKRIPTA', label: 'Skripta' },
-  { value: 'ELEKTRONIKA', label: 'Elektronika' },
-  { value: 'OPREMA', label: 'Oprema' },
-  { value: 'OSTALO', label: 'Ostalo' },
+  { value: 'KNJIGE', label: '📚 Knjige' },
+  { value: 'SKRIPTA', label: '📄 Skripta' },
+  { value: 'ELEKTRONIKA', label: '💻 Elektronika' },
+  { value: 'OPREMA', label: '🎒 Oprema' },
+  { value: 'OSTALO', label: '📦 Ostalo' },
 ]
 
 export default function NewShopItem() {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    condition: '',
-    category: '',
-  })
+  const [formData, setFormData] = useState({ title: '', description: '', price: '', condition: '', category: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+  const inputStyle = {
+    background: 'white',
+    border: '1.5px solid #E5E5EA',
+    color: '#1C1C1E',
+    borderRadius: '12px',
+    padding: '10px 16px',
+    fontSize: '14px',
+    width: '100%',
+    outline: 'none',
+    transition: 'border-color 0.15s',
   }
 
   const handleSubmit = async (e) => {
@@ -48,110 +50,124 @@ export default function NewShopItem() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/shop')} className="text-gray-400 hover:text-gray-600">
-          ← Nazad
+    <div className="min-h-screen" style={{ background: '#F5F5F0' }}>
+      <div style={{ background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)' }} className="px-8 py-6">
+        <button onClick={() => navigate('/shop')} className="flex items-center gap-2 text-sm mb-4" style={{ color: '#8E8E93' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Nazad na Shop
         </button>
-        <h1 className="font-semibold text-gray-800">Novi oglas</h1>
-      </nav>
+        <h1 className="text-2xl font-bold text-white">Novi oglas 🛍️</h1>
+      </div>
 
       <div className="max-w-lg mx-auto px-6 py-8">
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6">Detalji oglasa</h2>
+        <div className="rounded-2xl p-6" style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
           {error && (
-            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
-              {error}
+            <div className="px-4 py-3 rounded-xl mb-5 text-sm" style={{ background: '#FFF0ED', color: '#FF3B30' }}>
+              ⚠️ {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Naziv *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Naziv *</label>
               <input
-                name="title"
+                style={inputStyle}
                 value={formData.title}
-                onChange={handleChange}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="npr. Matematička analiza 1"
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Opis</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Opis</label>
               <textarea
-                name="description"
+                style={{ ...inputStyle, resize: 'none', height: '100px' }}
                 value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Opiši predmet..."
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Cijena (KM) *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1.5 block">Cijena (KM) *</label>
               <input
-                name="price"
+                style={inputStyle}
                 type="number"
                 min="0"
                 step="0.50"
                 value={formData.price}
-                onChange={handleChange}
+                onChange={e => setFormData({ ...formData, price: e.target.value })}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 placeholder="15.00"
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#E5E5EA'}
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Kategorija *</label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              >
-                <option value="">Odaberi kategoriju</option>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Kategorija *</label>
+              <div className="grid grid-cols-3 gap-2">
                 {CATEGORIES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: c.value })}
+                    className="py-2.5 px-3 rounded-xl text-sm font-medium transition"
+                    style={{
+                      background: formData.category === c.value ? '#FF6B35' : '#F5F5F0',
+                      color: formData.category === c.value ? 'white' : '#6B7280',
+                    }}
+                  >
+                    {c.label}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div>
-              <label className="text-sm text-gray-600 mb-1 block">Stanje *</label>
-              <select
-                name="condition"
-                value={formData.condition}
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-              >
-                <option value="">Odaberi stanje</option>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Stanje *</label>
+              <div className="grid grid-cols-2 gap-2">
                 {CONDITIONS.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, condition: c.value })}
+                    className="py-2.5 rounded-xl text-sm font-medium transition"
+                    style={{
+                      background: formData.condition === c.value ? '#FF6B35' : '#F5F5F0',
+                      color: formData.condition === c.value ? 'white' : '#6B7280',
+                    }}
+                  >
+                    {c.label}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => navigate('/shop')}
-                className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg text-sm hover:bg-gray-50 transition"
+                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                style={{ background: '#F5F5F0', color: '#6B7280' }}
               >
                 Odustani
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg text-sm transition disabled:opacity-50"
+                disabled={loading || !formData.category || !formData.condition}
+                className="flex-1 py-3 rounded-xl text-white font-semibold text-sm transition hover:opacity-90 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}
               >
-                {loading ? 'Kreiranje...' : 'Objavi oglas'}
+                {loading ? 'Objavljivanje...' : 'Objavi oglas'}
               </button>
             </div>
           </form>

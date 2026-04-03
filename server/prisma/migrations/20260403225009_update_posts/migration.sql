@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "CommunityPost" ALTER COLUMN "title" DROP NOT NULL,
+ALTER COLUMN "category" SET DEFAULT 'OSTALO';

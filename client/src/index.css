@@ -1,1 +1,43 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #FF6B35;
+  --color-primary-light: #FF8C5A;
+  --color-primary-dark: #E55A25;
+  --color-accent: #FFB800;
+  --color-accent-light: #FFD04D;
+  --color-bg: #EFEDE8;
+  --color-bg-card: #F7F5F0;
+  --color-bg-elevated: #FDFCF9;
+}
+
+body {
+  background: #EFEDE8;
+  background-image: 
+    radial-gradient(ellipse at 0% 0%, rgba(255,107,53,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(255,184,0,0.04) 0%, transparent 50%);
+  min-height: 100vh;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.4; }
+  50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(8px); opacity: 0.3; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.post-card { animation: fadeSlideUp 0.35s ease-out both; }
+.slide-in { animation: slideIn 0.25s ease-out both; }

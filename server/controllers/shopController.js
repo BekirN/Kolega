@@ -16,6 +16,7 @@ const getItems = async (req, res) => {
         { description: { contains: search, mode: 'insensitive' } },
       ]
     }
+
     if (minPrice || maxPrice) {
       filters.price = {}
       if (minPrice) filters.price.gte = parseFloat(minPrice)
@@ -39,7 +40,7 @@ const getItems = async (req, res) => {
 
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 
@@ -61,11 +62,11 @@ const getItemById = async (req, res) => {
       }
     })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
 
     res.json(item)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 
@@ -98,20 +99,20 @@ const createItem = async (req, res) => {
       }
     })
 
-    res.status(201).json({ message: 'Oglas kreiran uspješno!', item })
+    res.status(201).json({ message: 'Oglas kreiran uspjesno!', item })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 
-// Ažuriraj oglas
+// Azuriraj oglas
 const updateItem = async (req, res) => {
   try {
     const item = await prisma.shopItem.findUnique({
       where: { id: req.params.id }
     })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
     if (item.sellerId !== req.user.userId) {
       return res.status(403).json({ message: 'Nemate pristup ovom oglasu' })
     }
@@ -121,20 +122,20 @@ const updateItem = async (req, res) => {
       data: req.body
     })
 
-    res.json({ message: 'Oglas ažuriran!', item: updated })
+    res.json({ message: 'Oglas azuriran!', item: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 
-// Obriši oglas
+// Obrisi oglas
 const deleteItem = async (req, res) => {
   try {
     const item = await prisma.shopItem.findUnique({
       where: { id: req.params.id }
     })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
     if (item.sellerId !== req.user.userId) {
       return res.status(403).json({ message: 'Nemate pristup ovom oglasu' })
     }
@@ -142,7 +143,7 @@ const deleteItem = async (req, res) => {
     await prisma.shopItem.delete({ where: { id: req.params.id } })
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 
@@ -153,9 +154,10 @@ const getMyItems = async (req, res) => {
       where: { sellerId: req.user.userId },
       orderBy: { createdAt: 'desc' }
     })
+
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greska na serveru', error: error.message })
   }
 }
 

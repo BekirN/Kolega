@@ -1,4 +1,4 @@
-import api from './axios'
+﻿import api from './axios'
 
 export const getShopItems = async (filters = {}) => {
   const params = new URLSearchParams(filters).toString()

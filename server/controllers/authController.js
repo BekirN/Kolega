@@ -145,5 +145,132 @@ const getMe = async (req, res) => {
     res.status(500).json({ message: 'Greška na serveru' })
   }
 }
+// Dohvati profil korisnika po ID-u
+const getUserProfile = async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        university: true,
+        faculty: true,
+        yearOfStudy: true,
+        profileImage: true,
+        bio: true,
+        verificationStatus: true,
+        createdAt: true,
+        _count: {
+          select: {
+            shopItems: true,
+            materials: true,
+            communityPosts: true,
+          }
+        }
+      }
+    })
 
-module.exports = { register, login, getMe }
+    if (!user) return res.status(404).json({ message: 'Korisnik nije pronađen' })
+    res.json(user)
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+// Ažuriraj vlastiti profil
+const updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, university, faculty, yearOfStudy, bio } = req.body
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(university !== undefined && { university }),
+        ...(faculty !== undefined && { faculty }),
+        ...(yearOfStudy !== undefined && { yearOfStudy: yearOfStudy ? parseInt(yearOfStudy) : null }),
+        ...(bio !== undefined && { bio }),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        university: true,
+        faculty: true,
+        yearOfStudy: true,
+        bio: true,
+        profileImage: true,
+        verificationStatus: true,
+        role: true,
+      }
+    })
+
+    res.json({ message: 'Profil ažuriran!', user: updated })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+// Upload profilne slike
+const updateProfileImage = async (req, res) => {
+  try {
+    const cloudinary = require('../config/cloudinary')
+
+    if (!req.file) return res.status(400).json({ message: 'Slika nije uploadovana' })
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'kolega/avatars', transformation: [{ width: 400, height: 400, crop: 'fill' }] },
+        (error, result) => error ? reject(error) : resolve(result)
+      )
+      stream.end(req.file.buffer)
+    })
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { profileImage: result.secure_url },
+      select: { id: true, profileImage: true }
+    })
+
+    res.json({ message: 'Slika ažurirana!', profileImage: updated.profileImage })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+// Search korisnika
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query
+    if (!q || q.length < 2) return res.json([])
+
+    const users = await prisma.user.findMany({
+      where: {
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+        ],
+        NOT: { id: req.user.userId }
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        faculty: true,
+        university: true,
+        profileImage: true,
+        verificationStatus: true,
+      },
+      take: 8
+    })
+
+    res.json(users)
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+module.exports = { register, login, getMe, getUserProfile, updateProfile, updateProfileImage, searchUsers }
