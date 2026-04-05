@@ -22,9 +22,23 @@ import Profile from './pages/Profile'
 import StudentJobs from './pages/StudentJobs'
 import NewJob from './pages/NewJob'
 import { useEffect } from 'react'
+import Materials from './pages/Materials'
+import Housing from './pages/Housing'
+import NewHousing from './pages/NewHousing'
+
+
 import { initSocket, disconnectSocket } from './services/socket'
-const PublicRoute = ({ children }) => children
-const PrivateRoute = ({ children }) => <Layout>{children}</Layout>
+const PublicRoute = ({ children }) => {
+  const token = localStorage.getItem('token')
+  if (token) return <Navigate to="/dashboard" />
+  return children
+}
+
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('token')
+  if (!token) return <Navigate to="/login" />
+  return <Layout>{children}</Layout>
+}
 
 function App() {
   useEffect(() => {
@@ -56,9 +70,12 @@ function App() {
           <Route path="/community/:id" element={<PrivateRoute><PostDetail /></PrivateRoute>} />
           <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
           <Route path="/chat/:userId" element={<PrivateRoute><Chat /></PrivateRoute>} />
-          <Route path="/profile/:id" element={<PrivateRoute><Profile /></PrivateRoute>} />
+          <Route path="/profile/:id" element={<PrivateRoute><Profile key={window.location.pathname} /></PrivateRoute>} />
           <Route path="/jobs" element={<PrivateRoute><StudentJobs /></PrivateRoute>} />
           <Route path="/jobs/new" element={<PrivateRoute><NewJob /></PrivateRoute>} />
+          <Route path="/materials" element={<PrivateRoute><Materials /></PrivateRoute>} />
+          <Route path="/housing" element={<PrivateRoute><Housing /></PrivateRoute>} />
+          <Route path="/housing/new" element={<PrivateRoute><NewHousing /></PrivateRoute>} />
         </Routes>
       </NotificationProvider>
     </BrowserRouter>

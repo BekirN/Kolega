@@ -43,3 +43,7 @@ export const uploadFile = async (file) => {
   })
   return response.data
 }
+export const getUnreadMessagesCount = async () => {
+  const res = await api.get('/chat/unread-count')
+  return res.data
+}

@@ -33,7 +33,6 @@ model User {
   housingListings     HousingListing[]
   tutorProfile        TutorProfile?
   tutorBookings       TutorBooking[]     @relation("StudentBookings")
-  materials           Material[]
   internshipReviews   InternshipReview[]
   communityPosts      CommunityPost[]
   communityComments   CommunityComment[]
@@ -41,6 +40,10 @@ model User {
   sentMessages        Message[]          @relation("SentMessages")
   conversations       ConversationParticipant[]
   notifications       Notification[]
+
+  uploadedMaterials  Material[]       @relation("UploadedMaterials")
+  materialSaves      MaterialSave[]
+  materialFolders    MaterialFolder[]
 
   studentJobs   StudentJob[]
   sentConnections     Connection[] @relation("SentConnections")
@@ -211,31 +214,74 @@ enum BookingStatus {
 // MATERIJALI
 // ================================
 
-model Material {
+model MaterialFolder {
   id          String           @id @default(uuid())
-  title       String
-  description String?
-  fileUrl     String
-  fileType    String
-  subject     String
-  year        Int?
-  faculty     String?
-  downloads   Int              @default(0)
-  category    MaterialCategory
+  name        String
+  color       String           @default("#FF6B35")
+  icon        String           @default("📁")
+  isDefault   Boolean          @default(false)
 
-  uploaderId  String
-  uploader    User             @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentId    String?
+  parent      MaterialFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    MaterialFolder[] @relation("FolderTree")
+
+  materials   Material[]
 
   createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  @@unique([userId, name, isDefault])
 }
 
-enum MaterialCategory {
-  SKRIPTA
-  PREZENTACIJA
-  ISPITNA_PITANJA
-  ZADACE
-  OSTALO
+model Material {
+  id            String         @id @default(uuid())
+  title         String
+  description   String?
+  fileUrl       String
+  fileType      String
+  fileSize      Int?
+  subject       String?
+  professor     String?
+  year          Int?
+  isPublic      Boolean        @default(false)
+  faculty       String?
+  downloadCount Int            @default(0)
+  extractedText String?
+
+  uploaderId    String
+  uploader      User           @relation("UploadedMaterials", fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  folderId      String?
+  folder        MaterialFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  saves         MaterialSave[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model MaterialSave {
+  id          String       @id @default(uuid())
+  source      SaveSource   @default(LIBRARY)
+
+  materialId  String
+  material    Material     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  folderId    String?
+
+  savedAt     DateTime     @default(now())
+
+  @@unique([materialId, userId])
+}
+
+enum SaveSource {
+  CHAT
+  LIBRARY
+  DIRECT
 }
 
 // ================================
@@ -569,3 +615,7 @@ enum SalaryPeriod {
   PO_MJESECU
   DOGOVOR
 }
+
+
+
+

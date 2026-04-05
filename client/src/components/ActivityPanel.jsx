@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getActivities, markAllAsRead, markActivityAsRead } from '../api/activities'
-import { respondToRequest } from '../api/connections'
+import { respondToRequest, getPendingRequests } from '../api/connections'
 import { useNotifications } from '../context/NotificationContext'
 
 const ACTIVITY_ICONS = {
@@ -18,37 +18,31 @@ const ACTIVITY_ICONS = {
   GENERAL: '🔔',
 }
 
-const ACTIVITY_COLORS = {
-  CONNECTION_REQUEST: 'bg-indigo-50 border-indigo-100',
-  CONNECTION_ACCEPTED: 'bg-green-50 border-green-100',
-  BOOKING_REQUEST: 'bg-purple-50 border-purple-100',
-  BOOKING_CONFIRMED: 'bg-green-50 border-green-100',
-  BOOKING_CANCELLED: 'bg-red-50 border-red-100',
-  COMMUNITY_COMMENT: 'bg-blue-50 border-blue-100',
-  INTERNSHIP_REVIEW: 'bg-amber-50 border-amber-100',
-  GENERAL: 'bg-gray-50 border-gray-100',
-}
-
 export default function ActivityPanel({ onClose }) {
   const navigate = useNavigate()
   const { setPendingCount } = useNotifications()
   const [activities, setActivities] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [respondingTo, setRespondingTo] = useState(null)
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAll = async () => {
+      setLoading(true)
       try {
-        const data = await getActivities()
-        setActivities(data)
+        const [acts, pending] = await Promise.all([
+          getActivities(),
+          getPendingRequests(),
+        ])
+        setActivities(acts)
+        setPendingRequests(pending)
       } catch (err) {
         console.error(err)
       } finally {
         setLoading(false)
       }
     }
-    fetch()
+    fetchAll()
   }, [])
 
   const handleMarkAllRead = async () => {
@@ -73,32 +67,48 @@ export default function ActivityPanel({ onClose }) {
         console.error(err)
       }
     }
-
     if (activity.link) {
       navigate(activity.link)
       onClose()
     }
   }
 
-  const handleConnectionRespond = async (activity, action) => {
-    setRespondingTo(activity.id)
+  const handleConnectionRespond = async (connectionId, action) => {
+    console.log('Responding to connection:', { connectionId, action })
+    console.log('Pending requests:', pendingRequests)
+    setRespondingTo(connectionId)
     try {
-      await respondToRequest(activity.referenceId, action)
-      setActivities(prev => prev.map(a =>
-        a.id === activity.id
-          ? {
-              ...a,
-              isRead: true,
-              message: action === 'accept'
-                ? `✅ Prihvatili ste zahtjev od ${activity.actor?.firstName} ${activity.actor?.lastName}`
-                : `❌ Odbili ste zahtjev od ${activity.actor?.firstName} ${activity.actor?.lastName}`,
-              type: 'CONNECTION_ACCEPTED'
-            }
-          : a
-      ))
+      await respondToRequest(connectionId, action)
+
+      // Ukloni iz pending liste
+      setPendingRequests(prev => prev.filter(r => r.id !== connectionId))
+
+      // Ažuriraj aktivnosti – traži po referenceId ILI ako je connectionId
+      setActivities(prev => prev.map(a => {
+        // Provjeri i referenceId i ako je CONNECTION_REQUEST tip
+        if (a.referenceId === connectionId ||
+            (a.type === 'CONNECTION_REQUEST' &&
+            pendingRequests.find(r => r.id === connectionId)?.sender?.id === a.actor?.id)) {
+          return {
+            ...a,
+            isRead: true,
+            type: action === 'accept' ? 'CONNECTION_ACCEPTED' : 'GENERAL',
+            message: action === 'accept'
+              ? `✅ Prihvatili ste zahtjev – sada ste kolege!`
+              : `❌ Odbili ste zahtjev`,
+          }
+        }
+        return a
+      }))
+
       setPendingCount(prev => Math.max(0, prev - 1))
+
+      // Emituj event
+      window.dispatchEvent(new CustomEvent('connection-updated'))
+
     } catch (err) {
-      console.error(err)
+      console.error('Greška respond:', err.response?.data || err.message)
+      alert(err.response?.data?.message || 'Greška pri odgovoru na zahtjev')
     } finally {
       setRespondingTo(null)
     }
@@ -107,155 +117,313 @@ export default function ActivityPanel({ onClose }) {
   const unreadCount = activities.filter(a => !a.isRead).length
 
   return (
-    <div className="fixed inset-0 z-40 flex" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 40, display: 'flex',
+      }}
+      onClick={onClose}
+    >
+      {/* Overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(2px)',
+      }} />
 
+      {/* Panel */}
       <div
-        className="absolute left-64 top-0 h-full w-96 bg-white shadow-2xl flex flex-col z-50 border-r border-gray-100"
+        style={{
+          position: 'absolute',
+          left: '256px',
+          top: 0,
+          height: '100%',
+          width: '380px',
+          background: '#1C1C1E',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 50,
+          borderRight: '1px solid #2C2C2E',
+          animation: 'slideInPanel 0.25s cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
         onClick={e => e.stopPropagation()}
       >
+        <style>{`
+          @keyframes slideInPanel {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
+
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div style={{
+          padding: '20px',
+          borderBottom: '1px solid #2C2C2E',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
           <div>
-            <h2 className="font-semibold text-gray-800 text-lg">Aktivnosti</h2>
+            <h2 style={{ fontWeight: '900', color: 'white', fontSize: '18px', marginBottom: '3px' }}>
+              Aktivnosti
+            </h2>
             {unreadCount > 0 && (
-              <p className="text-xs text-indigo-500 mt-0.5">
+              <p style={{ fontSize: '12px', color: '#FF6B35', fontWeight: '600' }}>
                 {unreadCount} novih obavještenja
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-xs text-indigo-500 hover:text-indigo-700 transition px-2 py-1 rounded-lg hover:bg-indigo-50"
+                style={{
+                  fontSize: '12px', color: '#FF6B35', background: 'rgba(255,107,53,0.1)',
+                  border: 'none', cursor: 'pointer', padding: '6px 12px',
+                  borderRadius: '8px', fontWeight: '600', transition: 'opacity 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
                 Označi sve
               </button>
             )}
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100"
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: '#2C2C2E', border: 'none', cursor: 'pointer',
+                color: '#8E8E93', fontSize: '16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#3A3A3C'}
+              onMouseLeave={e => e.currentTarget.style.background = '#2C2C2E'}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              ✕
             </button>
           </div>
         </div>
 
+        {/* Pending zahtjevi – sekcija na vrhu */}
+        {pendingRequests.length > 0 && (
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #2C2C2E', flexShrink: 0 }}>
+            <p style={{
+              fontSize: '10px', fontWeight: '700', color: '#FF6B35',
+              textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px',
+            }}>
+              🤝 Zahtjevi za kolegu ({pendingRequests.length})
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {pendingRequests.map(req => (
+                <div key={req.id} style={{
+                  background: '#2C2C2E', borderRadius: '14px', padding: '12px',
+                  border: '1px solid rgba(255,107,53,0.2)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                    }}>
+                      {req.sender?.profileImage ? (
+                        <img src={req.sender.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{
+                          width: '100%', height: '100%',
+                          background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', fontWeight: '700', fontSize: '13px',
+                        }}>
+                          {req.sender?.firstName?.[0]}{req.sender?.lastName?.[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: '700', color: '#E5E5EA', fontSize: '14px' }}>
+                        {req.sender?.firstName} {req.sender?.lastName}
+                      </p>
+                      {req.sender?.faculty && (
+                        <p style={{ fontSize: '12px', color: '#636366', marginTop: '1px' }}>
+                          {req.sender.faculty}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => { navigate(`/profile/${req.sender?.id}`); onClose() }}
+                      style={{
+                        fontSize: '11px', color: '#8E8E93', background: 'transparent',
+                        border: 'none', cursor: 'pointer', padding: '4px 8px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      Profil
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleConnectionRespond(req.id, 'accept')}
+                      disabled={respondingTo === req.id}
+                      style={{
+                        flex: 1, padding: '8px', borderRadius: '10px', border: 'none',
+                        background: respondingTo === req.id
+                          ? '#3A3A3C'
+                          : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                        color: 'white', fontSize: '13px', fontWeight: '700',
+                        cursor: respondingTo === req.id ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        transition: 'opacity 0.2s',
+                      }}
+                      onMouseEnter={e => { if (respondingTo !== req.id) e.currentTarget.style.opacity = '0.9' }}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                      {respondingTo === req.id ? (
+                        <div style={{
+                          width: '12px', height: '12px', borderRadius: '50%',
+                          border: '2px solid white', borderTopColor: 'transparent',
+                          animation: 'spin 0.8s linear infinite',
+                        }} />
+                      ) : '✓'} Prihvati
+                    </button>
+                    <button
+                      onClick={() => handleConnectionRespond(req.id, 'reject')}
+                      disabled={respondingTo === req.id}
+                      style={{
+                        flex: 1, padding: '8px', borderRadius: '10px', border: 'none',
+                        background: '#3A3A3C', color: '#8E8E93',
+                        fontSize: '13px', fontWeight: '700',
+                        cursor: respondingTo === req.id ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { if (respondingTo !== req.id) { e.currentTarget.style.background = 'rgba(255,59,48,0.15)'; e.currentTarget.style.color = '#FF3B30' } }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#3A3A3C'; e.currentTarget.style.color = '#8E8E93' }}
+                    >
+                      ✕ Odbij
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Lista aktivnosti */}
-        <div className="flex-1 overflow-y-auto">
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
-            <div className="p-6 text-center">
-              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-gray-400 text-sm">Učitavanje...</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px', gap: '12px' }}>
+              <div style={{
+                width: '24px', height: '24px', borderRadius: '50%',
+                border: '2px solid #FF6B35', borderTopColor: 'transparent',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <p style={{ color: '#636366', fontSize: '13px' }}>Učitavanje...</p>
             </div>
           ) : activities.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-4xl mb-3">🔔</p>
-              <p className="text-gray-500 font-medium">Nema aktivnosti</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Ovdje će se pojavljivati obavještenja o zahtjevima, komentarima i rezervacijama
+            <div style={{ padding: '48px', textAlign: 'center' }}>
+              <p style={{ fontSize: '36px', marginBottom: '12px' }}>🔔</p>
+              <p style={{ fontWeight: '700', color: '#636366', fontSize: '15px', marginBottom: '6px' }}>
+                Nema aktivnosti
+              </p>
+              <p style={{ color: '#48484A', fontSize: '13px' }}>
+                Ovdje će se pojaviti zahtjevi, komentari i rezervacije
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div>
               {activities.map(activity => (
                 <div
                   key={activity.id}
-                  className={`px-5 py-4 transition-all ${
-                    !activity.isRead ? 'bg-indigo-50/40' : 'hover:bg-gray-50'
-                  }`}
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid #2C2C2E',
+                    background: !activity.isRead ? 'rgba(255,107,53,0.05)' : 'transparent',
+                    transition: 'background 0.15s',
+                    cursor: activity.link ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={e => { if (activity.link) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                  onMouseLeave={e => e.currentTarget.style.background = !activity.isRead ? 'rgba(255,107,53,0.05)' : 'transparent'}
                 >
-                  <div className="flex items-start gap-3">
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                     {/* Avatar ili ikona */}
-                    <div className="relative flex-shrink-0">
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
                       {activity.actor ? (
                         <div
-                          className="w-10 h-10 rounded-full overflow-hidden cursor-pointer"
-                          onClick={() => {
-                            navigate(`/profile/${activity.actor.id}`)
-                            onClose()
+                          style={{
+                            width: '38px', height: '38px', borderRadius: '50%',
+                            overflow: 'hidden', cursor: 'pointer',
                           }}
+                          onClick={() => { navigate(`/profile/${activity.actor.id}`); onClose() }}
                         >
                           {activity.actor.profileImage ? (
-                            <img src={activity.actor.profileImage} alt="" className="w-full h-full object-cover" />
+                            <img src={activity.actor.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                            <div style={{
+                              width: '100%', height: '100%',
+                              background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: 'white', fontWeight: '700', fontSize: '13px',
+                            }}>
                               {activity.actor.firstName?.[0]}{activity.actor.lastName?.[0]}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-xl">
+                        <div style={{
+                          width: '38px', height: '38px', borderRadius: '50%',
+                          background: '#2C2C2E',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '18px',
+                        }}>
                           {ACTIVITY_ICONS[activity.type] || '🔔'}
                         </div>
                       )}
-                      {/* Ikona tipa aktivnosti */}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white rounded-full flex items-center justify-center text-xs shadow-sm border border-gray-100">
+                      {/* Type badge */}
+                      <div style={{
+                        position: 'absolute', bottom: '-2px', right: '-2px',
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        background: '#1C1C1E', border: '1.5px solid #2C2C2E',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '9px',
+                      }}>
                         {ACTIVITY_ICONS[activity.type] || '🔔'}
                       </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      {/* Poruka */}
-                      <p className={`text-sm ${!activity.isRead ? 'text-gray-800 font-medium' : 'text-gray-600'}`}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: '13px', lineHeight: '1.4',
+                        color: !activity.isRead ? '#E5E5EA' : '#8E8E93',
+                        fontWeight: !activity.isRead ? '600' : '400',
+                        marginBottom: '4px',
+                      }}>
                         {activity.message}
                       </p>
-
-                      {/* Vrijeme */}
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p style={{ fontSize: '11px', color: '#48484A' }}>
                         {new Date(activity.createdAt).toLocaleDateString('bs-BA', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                          day: 'numeric', month: 'short',
+                          hour: '2-digit', minute: '2-digit',
                         })}
                       </p>
 
-                      {/* Akcije za connection request */}
-                      {activity.type === 'CONNECTION_REQUEST' &&
-                       activity.message.includes('želi postati') && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={() => handleConnectionRespond(activity, 'accept')}
-                            disabled={respondingTo === activity.id}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-1.5 rounded-lg transition font-medium disabled:opacity-50 flex items-center justify-center gap-1"
-                          >
-                            {respondingTo === activity.id ? (
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : '✓'}
-                            Prihvati
-                          </button>
-                          <button
-                            onClick={() => handleConnectionRespond(activity, 'reject')}
-                            disabled={respondingTo === activity.id}
-                            className="flex-1 border border-gray-200 text-gray-500 text-xs py-1.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-                          >
-                            Odbij
-                          </button>
-                        </div>
-                      )}
-
                       {/* Link dugme */}
-                      {activity.link &&
-                       activity.type !== 'CONNECTION_REQUEST' && (
+                      {activity.link && activity.type !== 'CONNECTION_REQUEST' && (
                         <button
                           onClick={() => handleActivityClick(activity)}
-                          className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 transition flex items-center gap-1"
-                        >
-                          Pogledaj
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                          style={{
+                            marginTop: '6px', fontSize: '12px', color: '#FF6B35',
+                            background: 'transparent', border: 'none', cursor: 'pointer',
+                            padding: 0, display: 'flex', alignItems: 'center', gap: '4px',
+                            fontWeight: '600',
+                          }}>
+                          Pogledaj →
                         </button>
                       )}
                     </div>
 
                     {/* Unread dot */}
                     {!activity.isRead && (
-                      <div className="w-2 h-2 bg-indigo-500 rounded-full flex-shrink-0 mt-1.5" />
+                      <div style={{
+                        width: '8px', height: '8px', borderRadius: '50%',
+                        background: '#FF6B35', flexShrink: 0, marginTop: '4px',
+                      }} />
                     )}
                   </div>
                 </div>

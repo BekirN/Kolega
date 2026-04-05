@@ -4,12 +4,13 @@ import { searchUsers } from '../api/auth'
 import { disconnectSocket } from '../services/socket'
 import { useNotifications } from '../context/NotificationContext'
 import { getUnreadCount } from '../api/activities'
+import { getUnreadMessagesCount } from '../api/chat'
 import ActivityPanel from './ActivityPanel'
 
 const NAV_ITEMS = [
   {
     path: '/dashboard',
-    label: 'Home',
+    label: 'Početna',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -18,7 +19,7 @@ const NAV_ITEMS = [
   },
   {
     path: '/shop',
-    label: 'Student Shop',
+    label: 'Prodavnica',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -63,7 +64,7 @@ const NAV_ITEMS = [
   },
   {
     path: '/jobs',
-    label: 'StudentJobs',
+    label: 'Studentski Poslovi',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -75,7 +76,13 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { pendingCount, setPendingCount } = useNotifications()
+  const {
+    pendingCount,
+    setPendingCount,
+    unreadMessagesCount,
+    setUnreadMessagesCount,
+  } = useNotifications()
+
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -85,17 +92,33 @@ export default function Sidebar() {
   const [showActivity, setShowActivity] = useState(false)
   const searchRef = useRef(null)
 
+  // Učitaj unread counts pri mountanju
   useEffect(() => {
-    const fetchUnread = async () => {
+    const fetchCounts = async () => {
       try {
-        const { count } = await getUnreadCount()
-        setPendingCount(count)
+        const [activityRes, msgRes] = await Promise.allSettled([
+          getUnreadCount(),
+          getUnreadMessagesCount(),
+        ])
+        if (activityRes.status === 'fulfilled') {
+          setPendingCount(activityRes.value.count || 0)
+        }
+        if (msgRes.status === 'fulfilled') {
+          setUnreadMessagesCount(msgRes.value.count || 0)
+        }
       } catch (err) {
         console.error(err)
       }
     }
-    if (user?.id) fetchUnread()
+    if (user?.id) fetchCounts()
   }, [user?.id])
+
+  // Resetuj message badge kada uđeš u chat
+  useEffect(() => {
+    if (location.pathname.startsWith('/chat')) {
+      setUnreadMessagesCount(0)
+    }
+  }, [location.pathname])
 
   const handleLogout = () => {
     disconnectSocket()
@@ -109,6 +132,7 @@ export default function Sidebar() {
     return location.pathname.startsWith(path)
   }
 
+  // Search logika
   useEffect(() => {
     const delay = setTimeout(async () => {
       if (searchQuery.length >= 2) {
@@ -176,14 +200,11 @@ export default function Sidebar() {
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowResults(true)}
               placeholder="Pretraži studente..."
-              className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border-0 focus:outline-none focus:ring-1 transition"
-              style={{
-                background: '#2C2C2E',
-                color: '#E5E5EA',
-                '::placeholder': { color: '#666' }
-              }}
+              className="w-full text-sm pl-9 pr-3 py-2.5 rounded-xl border-0 focus:outline-none transition"
+              style={{ background: '#2C2C2E', color: '#E5E5EA' }}
             />
 
+            {/* Search rezultati */}
             {showResults && searchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 rounded-xl overflow-hidden shadow-2xl z-50 border"
                 style={{ background: '#2C2C2E', borderColor: '#3A3A3C' }}>
@@ -207,7 +228,9 @@ export default function Sidebar() {
                       <p className="text-sm font-medium truncate" style={{ color: '#E5E5EA' }}>
                         {u.firstName} {u.lastName}
                       </p>
-                      {u.faculty && <p className="text-xs truncate" style={{ color: '#8E8E93' }}>{u.faculty}</p>}
+                      {u.faculty && (
+                        <p className="text-xs truncate" style={{ color: '#8E8E93' }}>{u.faculty}</p>
+                      )}
                     </div>
                     {u.verificationStatus === 'VERIFIED' && (
                       <span style={{ color: '#FF6B35' }} className="text-xs">✓</span>
@@ -216,10 +239,17 @@ export default function Sidebar() {
                 ))}
               </div>
             )}
+
+            {showResults && searchResults.length === 0 && searchQuery.length >= 2 && !searchLoading && (
+              <div className="absolute top-full left-0 right-0 mt-2 rounded-xl p-3 text-center z-50 border"
+                style={{ background: '#2C2C2E', borderColor: '#3A3A3C' }}>
+                <p className="text-sm" style={{ color: '#636366' }}>Nema rezultata</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Nav sekcija label */}
+        {/* Nav label */}
         <p className="px-4 text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#48484A' }}>
           Navigacija
         </p>
@@ -236,12 +266,16 @@ export default function Sidebar() {
                 color: isActive(item.path) ? '#FF6B35' : '#8E8E93',
               }}
               onMouseEnter={e => {
-                if (!isActive(item.path)) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                if (!isActive(item.path)) e.currentTarget.style.color = '#E5E5EA'
+                if (!isActive(item.path)) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.color = '#E5E5EA'
+                }
               }}
               onMouseLeave={e => {
-                if (!isActive(item.path)) e.currentTarget.style.background = 'transparent'
-                if (!isActive(item.path)) e.currentTarget.style.color = '#8E8E93'
+                if (!isActive(item.path)) {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = '#8E8E93'
+                }
               }}
             >
               <span style={{ color: isActive(item.path) ? '#FF6B35' : 'inherit' }}>
@@ -263,15 +297,22 @@ export default function Sidebar() {
             onClick={() => setShowActivity(true)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
             style={{ color: showActivity ? '#FF6B35' : '#8E8E93' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E5E5EA' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = showActivity ? '#FF6B35' : '#8E8E93' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+              e.currentTarget.style.color = '#E5E5EA'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = showActivity ? '#FF6B35' : '#8E8E93'
+            }}
           >
             <div className="relative">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
               {pendingCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white text-xs font-bold rounded-full flex items-center justify-center"
+                <span
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white font-bold rounded-full flex items-center justify-center"
                   style={{ background: '#FF6B35', fontSize: '10px' }}>
                   {pendingCount > 9 ? '9+' : pendingCount}
                 </span>
@@ -286,7 +327,7 @@ export default function Sidebar() {
             )}
           </button>
 
-          {/* Chat */}
+          {/* Chat / Poruke */}
           <button
             onClick={() => navigate('/chat')}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all"
@@ -294,16 +335,53 @@ export default function Sidebar() {
               background: isActive('/chat') ? 'rgba(255, 107, 53, 0.15)' : 'transparent',
               color: isActive('/chat') ? '#FF6B35' : '#8E8E93',
             }}
-            onMouseEnter={e => { if (!isActive('/chat')) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E5E5EA' } }}
-            onMouseLeave={e => { if (!isActive('/chat')) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8E8E93' } }}
+            onMouseEnter={e => {
+              if (!isActive('/chat')) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                e.currentTarget.style.color = '#E5E5EA'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive('/chat')) {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#8E8E93'
+              }
+            }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+            <div style={{ position: 'relative' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              {unreadMessagesCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: '-6px', right: '-6px',
+                  minWidth: '16px', height: '16px', borderRadius: '100px',
+                  background: '#FF6B35', color: 'white',
+                  fontSize: '10px', fontWeight: '800',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px',
+                }}>
+                  {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                </span>
+              )}
+            </div>
             <span className="font-medium">Poruke</span>
+            {unreadMessagesCount > 0 && (
+              <span style={{
+                marginLeft: 'auto',
+                minWidth: '20px', height: '18px',
+                background: '#FF6B35', color: 'white',
+                fontSize: '10px', fontWeight: '800',
+                borderRadius: '100px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 6px',
+              }}>
+                {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+              </span>
+            )}
           </button>
 
-          {/* Profil */}
+          {/* Profil + Logout */}
           <button
             onClick={() => navigate(`/profile/${user.id}`)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all mt-2"

@@ -5,6 +5,7 @@ import ChatDetails from '../components/ChatDetails'
 import CreateGroupModal from '../components/CreateGroupModal'
 import { getSocket } from '../services/socket'
 import { useNotifications } from '../context/NotificationContext'
+import { saveMaterial } from '../api/materials'
 
 export default function Chat() {
   const { userId } = useParams()
@@ -20,6 +21,9 @@ export default function Chat() {
   const [uploadError, setUploadError] = useState('')
   const [showDetails, setShowDetails] = useState(false)
   const [showGroupModal, setShowGroupModal] = useState(false)
+  const [savedMessages, setSavedMessages] = useState(new Set())
+  const [savingMessage, setSavingMessage] = useState(null)
+  const [saveToast, setSaveToast] = useState(null)
 
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
@@ -129,6 +133,14 @@ export default function Chat() {
     }
   }, [])
 
+  // Toast auto-hide
+  useEffect(() => {
+    if (saveToast) {
+      const timer = setTimeout(() => setSaveToast(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [saveToast])
+
   const openConversation = async (conversation) => {
     if (activeConvRef.current?.id === conversation.id) return
     const socket = getSocket()
@@ -142,6 +154,7 @@ export default function Chat() {
     setShowDetails(false)
     setActiveConversationId(conversation.id)
     markAsRead(conversation.id)
+    setSavedMessages(new Set())
 
     setConversations(prev => prev.map(c =>
       c.id === conversation.id ? { ...c, unreadCount: 0 } : c
@@ -212,6 +225,23 @@ export default function Chat() {
     }
   }
 
+  const handleSaveToLibrary = async (msg) => {
+    if (savedMessages.has(msg.id) || savingMessage === msg.id) return
+    setSavingMessage(msg.id)
+    try {
+      // Kreiramo material objekat iz poruke
+      await saveMaterial(msg.id, { source: 'CHAT' })
+      setSavedMessages(prev => new Set([...prev, msg.id]))
+      setSaveToast({ type: 'success', text: 'Sačuvano u biblioteku! 📚' })
+    } catch (err) {
+      // Ako materijal ne postoji u bazi (jer je samo fajl iz chata),
+      // prikazujemo poruku da mogu ručno uploadovati
+      setSaveToast({ type: 'info', text: 'Preuzmi fajl i uploaduj ga u svoju biblioteku 📚' })
+    } finally {
+      setSavingMessage(null)
+    }
+  }
+
   const handleGroupCreated = (conv) => {
     setConversations(prev => [conv, ...prev])
     openConversation(conv)
@@ -245,15 +275,16 @@ export default function Chat() {
     hour: '2-digit', minute: '2-digit'
   })
 
+  const isFileMessage = (msg) => msg.fileType === 'file' || msg.fileType === 'image'
+
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Sidebar konverzacija */}
+        {/* ── Sidebar konverzacija ───────────────────────────────── */}
         <div className="w-80 flex flex-col flex-shrink-0 overflow-hidden"
           style={{ background: '#1C1C1E', borderRight: '1px solid #2C2C2E' }}>
 
-          {/* Header */}
           <div className="px-5 py-5 flex items-center justify-between flex-shrink-0"
             style={{ borderBottom: '1px solid #2C2C2E' }}>
             <div>
@@ -273,7 +304,6 @@ export default function Chat() {
             </button>
           </div>
 
-          {/* Lista konverzacija */}
           <div className="flex-1 overflow-y-auto py-2">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -284,12 +314,8 @@ export default function Chat() {
             ) : conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-5 text-center">
                 <p className="text-3xl mb-3">💬</p>
-                <p className="text-sm font-semibold mb-1" style={{ color: '#8E8E93' }}>
-                  Nema poruka
-                </p>
-                <p className="text-xs" style={{ color: '#48484A' }}>
-                  Pretraži studente u sidebaru
-                </p>
+                <p className="text-sm font-semibold mb-1" style={{ color: '#8E8E93' }}>Nema poruka</p>
+                <p className="text-xs" style={{ color: '#48484A' }}>Pretraži studente u sidebaru</p>
               </div>
             ) : (
               conversations.map(conv => {
@@ -306,15 +332,12 @@ export default function Chat() {
                     onClick={() => openConversation(conv)}
                     className="w-full flex items-center gap-3 px-4 py-3.5 transition-all text-left"
                     style={{
-                      background: isActive
-                        ? 'rgba(255,107,53,0.12)'
-                        : 'transparent',
+                      background: isActive ? 'rgba(255,107,53,0.12)' : 'transparent',
                       borderLeft: isActive ? '3px solid #FF6B35' : '3px solid transparent',
                     }}
                     onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
                     onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                   >
-                    {/* Avatar */}
                     <div className="relative flex-shrink-0">
                       <div className="w-11 h-11 rounded-full overflow-hidden">
                         {avatar ? (
@@ -346,23 +369,18 @@ export default function Chat() {
                           </span>
                         )}
                       </div>
-
                       {lastMsg ? (
-                        <p className="text-xs truncate"
-                          style={{ color: isUnread ? '#8E8E93' : '#48484A' }}>
+                        <p className="text-xs truncate" style={{ color: isUnread ? '#8E8E93' : '#48484A' }}>
                           {conv.isGroup && `${lastMsg.sender?.firstName}: `}
                           {lastMsg.fileType === 'image' ? '📷 Slika'
                             : lastMsg.fileType === 'file' ? `📎 ${lastMsg.content}`
                             : lastMsg.content}
                         </p>
                       ) : (
-                        <p className="text-xs" style={{ color: '#48484A' }}>
-                          Počni razgovor
-                        </p>
+                        <p className="text-xs" style={{ color: '#48484A' }}>Počni razgovor</p>
                       )}
                     </div>
 
-                    {/* Unread count */}
                     {(conv.unreadCount || 0) > 0 && !isActive && (
                       <span className="flex-shrink-0 min-w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold px-1.5"
                         style={{ background: '#FF6B35', fontSize: '10px' }}>
@@ -376,11 +394,10 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* Chat area */}
+        {/* ── Chat area ─────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {!activeConversation ? (
-            <div className="flex-1 flex items-center justify-center"
-              style={{ background: '#EFEDE8' }}>
+            <div className="flex-1 flex items-center justify-center" style={{ background: '#EFEDE8' }}>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5"
                   style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
@@ -413,19 +430,14 @@ export default function Chat() {
                 <div className="flex-1">
                   <p className="font-black text-gray-900">{getConversationName(activeConversation)}</p>
                   {activeConversation.isGroup ? (
-                    <p className="text-xs text-gray-400">
-                      {activeConversation.participants?.length} članova
-                    </p>
+                    <p className="text-xs text-gray-400">{activeConversation.participants?.length} članova</p>
                   ) : (
                     getOtherParticipant(activeConversation)?.faculty && (
-                      <p className="text-xs text-gray-400">
-                        {getOtherParticipant(activeConversation).faculty}
-                      </p>
+                      <p className="text-xs text-gray-400">{getOtherParticipant(activeConversation).faculty}</p>
                     )
                   )}
                 </div>
 
-                {/* Detalji dugme */}
                 <button
                   onClick={() => setShowDetails(!showDetails)}
                   className="p-2.5 rounded-xl transition"
@@ -443,8 +455,7 @@ export default function Chat() {
                 {/* Poruke */}
                 <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
 
-                  {/* Messages list */}
-                  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+                  <div className="flex-1 overflow-y-auto px-6 py-5 space-y-1">
                     {messages.length === 0 && (
                       <div className="flex flex-col items-center justify-center h-full text-center py-12">
                         <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-4"
@@ -459,14 +470,19 @@ export default function Chat() {
                     {messages.map((msg, idx) => {
                       const isMine = msg.senderId === user.id || msg.sender?.id === user.id
                       const prevMsg = messages[idx - 1]
+                      const nextMsg = messages[idx + 1]
                       const showAvatar = !isMine && (!prevMsg || prevMsg.senderId !== msg.senderId)
-                      const showTime = !messages[idx + 1] ||
-                        Math.abs(new Date(msg.createdAt) - new Date(messages[idx + 1]?.createdAt)) > 300000
+                      const showTime = !nextMsg ||
+                        Math.abs(new Date(msg.createdAt) - new Date(nextMsg.createdAt)) > 300000
+                      const isFile = isFileMessage(msg)
+                      const isSaved = savedMessages.has(msg.id)
+                      const isSavingThis = savingMessage === msg.id
 
                       return (
-                        <div key={msg.id}>
+                        <div key={msg.id} className="group">
                           <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                            {/* Avatar (tuđe poruke) */}
+
+                            {/* Avatar tuđih poruka */}
                             {!isMine && (
                               <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden mb-1"
                                 style={{ visibility: showAvatar ? 'visible' : 'hidden' }}>
@@ -481,16 +497,22 @@ export default function Chat() {
                               </div>
                             )}
 
+                            {/* Save dugme lijevo od mojih poruka */}
+                            {isMine && isFile && (
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mb-1">
+                                <div style={{ width: '28px' }} />
+                              </div>
+                            )}
+
                             {/* Bubble */}
                             <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-xs lg:max-w-sm`}>
-                              {/* Ime u grupi */}
                               {activeConversation.isGroup && !isMine && showAvatar && (
                                 <span className="text-xs font-semibold mb-1 ml-1" style={{ color: '#FF6B35' }}>
                                   {msg.sender?.firstName}
                                 </span>
                               )}
 
-                              <div className="px-4 py-2.5 rounded-2xl"
+                              <div className="px-4 py-2.5"
                                 style={{
                                   background: isMine
                                     ? 'linear-gradient(135deg, #FF6B35, #FF8C5A)'
@@ -510,8 +532,8 @@ export default function Chat() {
                                     <img
                                       src={msg.fileUrl}
                                       alt="slika"
-                                      className="rounded-xl max-w-full mb-1 cursor-pointer hover:opacity-90 transition"
-                                      style={{ maxHeight: '220px' }}
+                                      className="rounded-xl max-w-full cursor-pointer hover:opacity-90 transition"
+                                      style={{ maxHeight: '220px', display: 'block' }}
                                     />
                                   </a>
                                 )}
@@ -519,14 +541,12 @@ export default function Chat() {
                                 {/* Fajl */}
                                 {msg.fileType === 'file' && msg.fileUrl && (
                                   
-                                   <a href={msg.fileUrl}
+                                  <a  href={msg.fileUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 text-sm transition hover:opacity-80">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                      style={{
-                                        background: isMine ? 'rgba(255,255,255,0.2)' : '#FFF7ED'
-                                      }}>
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                      style={{ background: isMine ? 'rgba(255,255,255,0.2)' : '#FFF7ED' }}>
                                       📎
                                     </div>
                                     <span className="underline truncate max-w-40"
@@ -541,6 +561,47 @@ export default function Chat() {
                                   <p className="text-sm leading-relaxed">{msg.content}</p>
                                 )}
                               </div>
+
+                              {/* Save dugme ispod fajl/slika poruka koje NISAM ja poslao */}
+                              {!isMine && isFile && (
+                                <button
+                                  onClick={() => handleSaveToLibrary(msg)}
+                                  disabled={isSaved || isSavingThis}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    marginTop: '5px',
+                                    marginLeft: '4px',
+                                    padding: '4px 10px',
+                                    borderRadius: '100px',
+                                    border: 'none',
+                                    cursor: isSaved ? 'default' : 'pointer',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    background: isSaved
+                                      ? 'rgba(22,163,74,0.12)'
+                                      : 'rgba(255,107,53,0.1)',
+                                    color: isSaved ? '#16A34A' : '#FF6B35',
+                                    transition: 'all 0.2s',
+                                    opacity: isSavingThis ? 0.6 : 1,
+                                  }}>
+                                  {isSavingThis ? (
+                                    <>
+                                      <div style={{
+                                        width: '10px', height: '10px', borderRadius: '50%',
+                                        border: '1.5px solid #FF6B35', borderTopColor: 'transparent',
+                                        animation: 'spin 0.8s linear infinite',
+                                      }} />
+                                      Čuvam...
+                                    </>
+                                  ) : isSaved ? (
+                                    <>✓ Sačuvano u biblioteku</>
+                                  ) : (
+                                    <>📚 Sačuvaj u biblioteku</>
+                                  )}
+                                </button>
+                              )}
 
                               {/* Vrijeme */}
                               {showTime && (
@@ -595,7 +656,6 @@ export default function Chat() {
                       borderTop: '1px solid rgba(0,0,0,0.06)',
                     }}>
                     <form onSubmit={handleSend} className="flex items-center gap-3">
-                      {/* File upload */}
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -666,6 +726,25 @@ export default function Chat() {
           )}
         </div>
       </div>
+
+      {/* ── Save toast notifikacija ────────────────────────────── */}
+      {saveToast && (
+        <div style={{
+          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, padding: '12px 20px', borderRadius: '100px',
+          background: saveToast.type === 'success' ? '#1C1C1E' : '#1C1C1E',
+          color: 'white', fontSize: '14px', fontWeight: '700',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: '8px',
+          animation: 'fadeSlideUp 0.3s ease',
+          whiteSpace: 'nowrap',
+        }}>
+          {saveToast.type === 'success'
+            ? <span style={{ color: '#4ADE80' }}>✓</span>
+            : <span>💡</span>}
+          {saveToast.text}
+        </div>
+      )}
 
       {showGroupModal && (
         <CreateGroupModal

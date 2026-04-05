@@ -28,7 +28,9 @@ const playSound = (type = 'message') => {
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([])
   const [unreadConversations, setUnreadConversations] = useState(new Set())
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
+
   const navigate = useNavigate()
   const location = useLocation()
   const activeConversationRef = useRef(null)
@@ -54,6 +56,9 @@ export function NotificationProvider({ children }) {
   }
 
   const markAsRead = (conversationId) => {
+    if (unreadConversations.has(conversationId)) {
+      setUnreadMessagesCount(prev => Math.max(0, prev - 1))
+    }
     setUnreadConversations(prev => {
       const next = new Set(prev)
       next.delete(conversationId)
@@ -110,6 +115,7 @@ export function NotificationProvider({ children }) {
         })
 
         playSound(isGroup ? 'group' : 'message')
+        setUnreadMessagesCount(prev => prev + 1)
         setUnreadConversations(prev => new Set([...prev, message.conversationId]))
       }
     }
@@ -155,7 +161,6 @@ export function NotificationProvider({ children }) {
     }
 
     const handleNewActivity = (activity) => {
-      console.log('Nova aktivnost primljena:', activity)
       setPendingCount(prev => prev + 1)
 
       const ICONS = {
@@ -228,6 +233,8 @@ export function NotificationProvider({ children }) {
       setActiveConversationId,
       pendingCount,
       setPendingCount,
+      unreadMessagesCount,
+      setUnreadMessagesCount,
     }}>
       {children}
 
@@ -265,87 +272,111 @@ function NotificationToast({ notification, onClose, onAction }) {
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true))
-
     const duration = 5000
     const interval = 50
     const step = (interval / duration) * 100
-
     const timer = setInterval(() => {
       setProgress(prev => {
-        if (prev <= 0) {
-          clearInterval(timer)
-          handleClose()
-          return 0
-        }
+        if (prev <= 0) { clearInterval(timer); handleClose(); return 0 }
         return prev - step
       })
     }, interval)
-
     return () => clearInterval(timer)
   }, [])
 
-  const TYPE_COLORS = {
-    message: 'bg-indigo-500',
-    group: 'bg-purple-500',
-    connection: 'bg-green-500',
-    activity: 'bg-amber-500',
+  const TYPE_CONFIG = {
+    message: { bar: '#FF6B35', avatar: '#FF6B35' },
+    group: { bar: '#FFB800', avatar: '#FFB800' },
+    connection: { bar: 'linear-gradient(135deg, #FF6B35, #FFB800)', avatar: '#FF6B35' },
+    activity: { bar: '#FFB800', avatar: '#FFB800' },
   }
 
-  const TYPE_BG = {
-    message: 'bg-indigo-600',
-    group: 'bg-purple-600',
-    connection: 'bg-green-600',
-    activity: 'bg-amber-600',
-  }
+  const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.message
 
   return (
-    <div
-      className={`pointer-events-auto transition-all duration-300 ease-out ${
-        visible
-          ? 'opacity-100 translate-y-0 scale-100'
-          : 'opacity-0 translate-y-8 scale-95'
-      }`}
-    >
+    <div style={{
+      pointerEvents: 'auto',
+      transition: 'all 0.3s cubic-bezier(0.22, 1, 0.36, 1)',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.96)',
+    }}>
       <div
         onClick={onAction}
-        className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden w-80 cursor-pointer hover:bg-gray-800 transition-colors"
+        style={{
+          background: '#1C1C1E',
+          border: '1px solid #2C2C2E',
+          borderRadius: '18px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          overflow: 'hidden',
+          width: '320px',
+          cursor: 'pointer',
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = '#2C2C2E'}
+        onMouseLeave={e => e.currentTarget.style.background = '#1C1C1E'}
       >
-        <div className="h-0.5 bg-gray-700">
-          <div
-            className={`h-full ${TYPE_COLORS[notification.type] || 'bg-indigo-500'}`}
-            style={{ width: `${progress}%`, transition: 'width 50ms linear' }}
-          />
+        <div style={{ height: '2px', background: '#2C2C2E' }}>
+          <div style={{
+            height: '100%',
+            background: config.bar,
+            width: `${progress}%`,
+            transition: 'width 50ms linear',
+          }} />
         </div>
 
-        <div className="p-4 flex items-start gap-3">
-          <div className="relative flex-shrink-0">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden ${
-              TYPE_BG[notification.type] || 'bg-indigo-600'
-            }`}>
+        <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '50%',
+              background: config.avatar,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              color: 'white', fontWeight: '700', fontSize: '13px',
+            }}>
               {notification.avatar ? (
-                <img src={notification.avatar} alt="" className="w-full h-full object-cover" />
+                <img src={notification.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <span>{notification.initials}</span>
               )}
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
+            <div style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: '10px', height: '10px', borderRadius: '50%',
+              background: '#4ADE80', border: '2px solid #1C1C1E',
+            }} />
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-0.5">
-              <p className="text-white text-sm font-semibold truncate">{notification.title}</p>
-              <span className="text-gray-500 text-xs flex-shrink-0">upravo</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '2px' }}>
+              <p style={{
+                color: 'white', fontSize: '13px', fontWeight: '700',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {notification.title}
+              </p>
+              <span style={{ color: '#48484A', fontSize: '11px', flexShrink: 0 }}>upravo</span>
             </div>
-            <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{notification.body}</p>
+            <p style={{
+              color: '#8E8E93', fontSize: '12px', lineHeight: '1.4',
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>
+              {notification.body}
+            </p>
           </div>
 
           <button
-            onClick={(e) => { e.stopPropagation(); handleClose() }}
-            className="text-gray-600 hover:text-gray-300 transition flex-shrink-0"
+            onClick={e => { e.stopPropagation(); handleClose() }}
+            style={{
+              color: '#48484A', background: 'transparent', border: 'none',
+              cursor: 'pointer', padding: '2px', flexShrink: 0,
+              fontSize: '14px', lineHeight: 1,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#8E8E93'}
+            onMouseLeave={e => e.currentTarget.style.color = '#48484A'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✕
           </button>
         </div>
       </div>

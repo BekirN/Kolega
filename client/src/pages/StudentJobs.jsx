@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getJobs, deleteJob } from '../api/jobs'
+import { AnimatedSection, AnimatedBlur, AnimatedScale, AnimatedLine } from '../components/Animated'
 
 const CATEGORIES = {
   UGOSTITELJSTVO: { label: 'Ugostiteljstvo', emoji: '🍽️' },
@@ -15,18 +16,14 @@ const CATEGORIES = {
 }
 
 const SALARY_PERIOD = {
-  PO_SATU: '/sat',
-  PO_DANU: '/dan',
-  PO_MJESECU: '/mj.',
-  DOGOVOR: 'dogovor',
+  PO_SATU: '/sat', PO_DANU: '/dan', PO_MJESECU: '/mj.', DOGOVOR: 'dogovor',
 }
 
 const timeAgo = (date) => {
-  const seconds = Math.floor((new Date() - new Date(date)) / 1000)
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}min`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`
-  return new Date(date).toLocaleDateString('bs-BA')
+  const s = Math.floor((new Date() - new Date(date)) / 1000)
+  if (s < 3600) return `${Math.floor(s / 60)}min`
+  if (s < 86400) return `${Math.floor(s / 3600)}h`
+  return `${Math.floor(s / 86400)}d`
 }
 
 export default function StudentJobs() {
@@ -69,368 +66,349 @@ export default function StudentJobs() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#F5F5F0' }}>
+    <div style={{ minHeight: '100vh', background: '#EFEDE8' }}>
 
-      {/* Hero Header */}
-      <div className="relative overflow-hidden px-8 pt-10 pb-8"
-        style={{ background: 'linear-gradient(135deg, #1C1C1E 0%, #2C1810 60%, #1C1C1E 100%)' }}>
+      {/* Hero */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1C1C1E 0%, #2C1810 60%, #1C1C1E 100%)',
+        padding: '40px 32px 32px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 50%, rgba(255,107,53,0.18), transparent 60%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 30%, rgba(255,184,0,0.08), transparent 50%)' }} />
 
-        <div className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 30% 50%, rgba(255,107,53,0.2), transparent 60%)' }} />
-        <div className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 80% 30%, rgba(255,184,0,0.1), transparent 50%)' }} />
-
-        <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-4"
-            style={{ background: 'rgba(255,107,53,0.15)', color: '#FF6B35', border: '1px solid rgba(255,107,53,0.3)' }}>
-            💼 Studentski poslovi
-          </div>
-          <h1 className="text-4xl font-black text-white mb-2">
-            Nađi posao ili{' '}
-            <span style={{
-              background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <AnimatedBlur delay={0}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '6px 14px', borderRadius: '100px', marginBottom: '16px',
+              background: 'rgba(255,107,53,0.15)', color: '#FF6B35',
+              border: '1px solid rgba(255,107,53,0.3)', fontSize: '12px', fontWeight: '600',
             }}>
-              zaposli studenta
-            </span>
-          </h1>
-          <p style={{ color: '#8E8E93' }} className="text-base mb-6">
-            Konobarisanje, IT poslovi, tutoring, dostava i još mnogo toga.
-          </p>
+              💼 Studentski poslovi
+            </div>
 
-          {/* Search */}
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#8E8E93' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div>
+                <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'white', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '8px' }}>
+                  Nađi posao ili{' '}
+                  <span style={{
+                    background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  }}>
+                    zaposli studenta
+                  </span>
+                </h1>
+                <p style={{ color: '#8E8E93', fontSize: '15px' }}>
+                  Konobarisanje, IT, tutoring, dostava i još mnogo toga
+                </p>
+              </div>
+              <button onClick={() => navigate('/jobs/new')} style={{
+                padding: '10px 20px', borderRadius: '12px', border: 'none',
+                background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                flexShrink: 0, boxShadow: '0 4px 16px rgba(255,107,53,0.3)',
+              }}>
+                + Objavi oglas
+              </button>
+            </div>
+          </AnimatedBlur>
+
+          <AnimatedSection delay={0.1} direction="up">
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && fetchJobs()}
                 placeholder="Pretraži poslove..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none"
-                style={{ background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C' }}
+                style={{
+                  flex: 1, padding: '11px 16px', borderRadius: '12px',
+                  background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C',
+                  fontSize: '14px', outline: 'none',
+                }}
               />
+              <button onClick={fetchJobs} style={{
+                padding: '11px 20px', borderRadius: '12px', border: 'none',
+                background: '#FF6B35', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+              }}>
+                Traži
+              </button>
             </div>
-            <button
-              onClick={fetchJobs}
-              className="px-6 py-3 rounded-xl text-white font-semibold text-sm"
-              style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
-              Traži
-            </button>
-            <button
-              onClick={() => navigate('/jobs/new')}
-              className="px-6 py-3 rounded-xl text-white font-semibold text-sm flex items-center gap-2"
-              style={{ background: '#2C2C2E', border: '1px solid #3A3A3C' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              Objavi
-            </button>
-          </div>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.15} direction="up">
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { value: '', label: '🔍 Sve' },
+                { value: 'NUDIM', label: '💼 Nudim posao' },
+                { value: 'TRAZIM', label: '🙋 Tražim posao' },
+              ].map(t => (
+                <button key={t.value} onClick={() => setActiveType(t.value)} style={{
+                  padding: '7px 16px', borderRadius: '100px', border: 'none', cursor: 'pointer',
+                  background: activeType === t.value ? '#FF6B35' : 'rgba(255,255,255,0.08)',
+                  color: activeType === t.value ? 'white' : '#8E8E93',
+                  fontSize: '13px', fontWeight: '600', transition: 'all 0.2s',
+                }}>
+                  {t.label}
+                </button>
+              ))}
+              <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
+              {Object.entries(CATEGORIES).map(([key, val]) => (
+                <button key={key} onClick={() => setActiveCategory(activeCategory === key ? '' : key)} style={{
+                  padding: '7px 16px', borderRadius: '100px', border: 'none', cursor: 'pointer',
+                  background: activeCategory === key ? '#1C1C1E' : 'rgba(255,255,255,0.06)',
+                  color: activeCategory === key ? 'white' : '#636366',
+                  fontSize: '13px', fontWeight: '600', transition: 'all 0.2s',
+                }}>
+                  {val.emoji} {val.label}
+                </button>
+              ))}
+            </div>
+          </AnimatedSection>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Filteri */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          {/* Tip */}
-          <div className="flex gap-2">
-            {[
-              { value: '', label: '🔍 Sve' },
-              { value: 'NUDIM', label: '💼 Nudim posao' },
-              { value: 'TRAZIM', label: '🙋 Tražim posao' },
-            ].map(t => (
-              <button
-                key={t.value}
-                onClick={() => setActiveType(t.value)}
-                className="px-4 py-2 rounded-full text-sm font-medium transition"
-                style={{
-                  background: activeType === t.value ? '#FF6B35' : 'white',
-                  color: activeType === t.value ? 'white' : '#6B7280',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Separator */}
-          <div className="w-px" style={{ background: '#E5E5EA' }} />
-
-          {/* Kategorije */}
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setActiveCategory('')}
-              className="px-4 py-2 rounded-full text-sm font-medium transition"
-              style={{
-                background: activeCategory === '' ? '#1C1C1E' : 'white',
-                color: activeCategory === '' ? 'white' : '#6B7280',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              }}>
-              Sve kategorije
-            </button>
-            {Object.entries(CATEGORIES).map(([key, val]) => (
-              <button
-                key={key}
-                onClick={() => setActiveCategory(key)}
-                className="px-4 py-2 rounded-full text-sm font-medium transition"
-                style={{
-                  background: activeCategory === key ? '#1C1C1E' : 'white',
-                  color: activeCategory === key ? 'white' : '#6B7280',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                }}>
-                {val.emoji} {val.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Sadržaj */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px' }}>
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-8 h-8 rounded-full border-2 animate-spin"
-              style={{ borderColor: '#FF6B35', borderTopColor: 'transparent' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid #FF6B35', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
           </div>
         ) : jobs.length === 0 ? (
-          <div className="text-center py-20 rounded-2xl"
-            style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <p className="text-5xl mb-4">💼</p>
-            <p className="text-xl font-bold text-gray-800 mb-2">Nema oglasa</p>
-            <p className="text-gray-400 mb-6">Budi prvi koji objavljuje posao!</p>
-            <button onClick={() => navigate('/jobs/new')}
-              className="px-6 py-3 rounded-xl text-white font-semibold text-sm"
-              style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
-              Objavi oglas
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-            {/* Lista poslova */}
-            <div className="lg:col-span-1 space-y-3">
-              <p className="text-sm text-gray-400 font-medium mb-3">{jobs.length} oglasa</p>
-              {jobs.map(job => (
-                <div
-                  key={job.id}
-                  onClick={() => setSelectedJob(job)}
-                  className="rounded-2xl p-4 cursor-pointer transition-all"
-                  style={{
-                    background: selectedJob?.id === job.id ? '#FFF7ED' : 'white',
-                    boxShadow: selectedJob?.id === job.id
-                      ? '0 0 0 2px #FF6B35'
-                      : '0 1px 3px rgba(0,0,0,0.08)',
-                    transform: selectedJob?.id === job.id ? 'scale(1.01)' : 'scale(1)',
-                  }}>
-
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{
-                          background: job.type === 'NUDIM' ? '#F0FDF4' : '#EFF6FF',
-                          color: job.type === 'NUDIM' ? '#16A34A' : '#2563EB',
-                        }}>
-                        {job.type === 'NUDIM' ? '💼 Nudim' : '🙋 Tražim'}
-                      </span>
-                      <span className="text-xs text-gray-400">{timeAgo(job.createdAt)}</span>
-                    </div>
-                    {job.isRemote && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ background: '#F5F3FF', color: '#7C3AED' }}>
-                        🌐 Remote
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="font-bold text-gray-900 mb-1 line-clamp-1">{job.title}</h3>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full"
-                      style={{ background: '#FFF7ED', color: '#FF6B35' }}>
-                      {CATEGORIES[job.category]?.emoji} {CATEGORIES[job.category]?.label}
-                    </span>
-                    {job.location && (
-                      <span className="text-xs text-gray-400">📍 {job.location}</span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">{job.description}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full overflow-hidden">
-                        {job.author?.profileImage ? (
-                          <img src={job.author.profileImage} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold"
-                            style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
-                            {job.author?.firstName?.[0]}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-400">
-                        {job.author?.firstName} {job.author?.lastName}
-                      </span>
-                    </div>
-                    {job.salary && (
-                      <span className="text-sm font-black" style={{ color: '#FF6B35' }}>
-                        {job.salary} KM{job.salaryPeriod ? SALARY_PERIOD[job.salaryPeriod] : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+          <AnimatedScale>
+            <div style={{ background: '#FDFCF9', borderRadius: '24px', padding: '64px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: '48px', marginBottom: '16px' }}>💼</p>
+              <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '20px', marginBottom: '8px' }}>Nema oglasa</p>
+              <p style={{ color: '#8E8E93', marginBottom: '24px' }}>Budi prvi koji objavljuje posao!</p>
+              <button onClick={() => navigate('/jobs/new')} style={{
+                padding: '12px 28px', borderRadius: '14px', border: 'none',
+                background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                color: 'white', fontWeight: '700', cursor: 'pointer',
+              }}>
+                Objavi oglas
+              </button>
             </div>
+          </AnimatedScale>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '20px' }}>
 
-            {/* Detalji posla */}
-            <div className="lg:col-span-2">
-              {!selectedJob ? (
-                <div className="rounded-2xl flex flex-col items-center justify-center py-20"
-                  style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                  <p className="text-5xl mb-4">👈</p>
-                  <p className="text-gray-500 font-medium">Odaberi oglas za pregled</p>
-                </div>
-              ) : (
-                <div className="rounded-2xl overflow-hidden"
-                  style={{ background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            {/* Lista */}
+            <div>
+              <AnimatedSection delay={0}>
+                <p style={{ fontSize: '13px', color: '#AEAEB2', fontWeight: '600', marginBottom: '16px' }}>
+                  {jobs.length} oglasa
+                </p>
+              </AnimatedSection>
 
-                  {/* Header */}
-                  <div className="p-6 pb-4"
-                    style={{ background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)' }}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-                            style={{
-                              background: selectedJob.type === 'NUDIM'
-                                ? 'rgba(22,163,74,0.2)' : 'rgba(37,99,235,0.2)',
-                              color: selectedJob.type === 'NUDIM' ? '#4ADE80' : '#60A5FA',
-                            }}>
-                            {selectedJob.type === 'NUDIM' ? '💼 Nudim posao' : '🙋 Tražim posao'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {jobs.map((job, i) => (
+                  <AnimatedSection key={job.id} delay={i * 0.05} direction="right">
+                    <div
+                      onClick={() => setSelectedJob(job)}
+                      style={{
+                        background: selectedJob?.id === job.id ? '#FFF7ED' : '#FDFCF9',
+                        borderRadius: '16px', padding: '16px', cursor: 'pointer',
+                        border: selectedJob?.id === job.id ? '2px solid #FF6B35' : '2px solid transparent',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { if (selectedJob?.id !== job.id) e.currentTarget.style.borderColor = 'rgba(255,107,53,0.3)' }}
+                      onMouseLeave={e => { if (selectedJob?.id !== job.id) e.currentTarget.style.borderColor = 'transparent' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '100px',
+                            background: job.type === 'NUDIM' ? 'rgba(22,163,74,0.1)' : 'rgba(37,99,235,0.1)',
+                            color: job.type === 'NUDIM' ? '#16A34A' : '#2563EB',
+                          }}>
+                            {job.type === 'NUDIM' ? '💼 Nudim' : '🙋 Tražim'}
                           </span>
-                          {selectedJob.isRemote && (
-                            <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                              style={{ background: 'rgba(124,58,237,0.2)', color: '#A78BFA' }}>
+                          {job.isRemote && (
+                            <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(124,58,237,0.1)', color: '#7C3AED', fontWeight: '600' }}>
                               🌐 Remote
                             </span>
                           )}
                         </div>
-                        <h2 className="text-2xl font-black text-white">{selectedJob.title}</h2>
+                        <span style={{ fontSize: '11px', color: '#AEAEB2' }}>{timeAgo(job.createdAt)}</span>
                       </div>
 
-                      {user.id === selectedJob.authorId && (
-                        <button
-                          onClick={() => handleDelete(selectedJob.id)}
-                          className="p-2 rounded-xl transition"
-                          style={{ background: 'rgba(255,59,48,0.15)', color: '#FF3B30' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Meta info */}
-                    <div className="flex flex-wrap gap-3">
-                      <span className="flex items-center gap-1.5 text-sm"
-                        style={{ color: '#8E8E93' }}>
-                        {CATEGORIES[selectedJob.category]?.emoji}
-                        {CATEGORIES[selectedJob.category]?.label}
-                      </span>
-                      {selectedJob.location && (
-                        <span className="flex items-center gap-1.5 text-sm" style={{ color: '#8E8E93' }}>
-                          📍 {selectedJob.location}
-                        </span>
-                      )}
-                      {selectedJob.hours && (
-                        <span className="flex items-center gap-1.5 text-sm" style={{ color: '#8E8E93' }}>
-                          ⏰ {selectedJob.hours}
-                        </span>
-                      )}
-                      {selectedJob.salary && (
-                        <span className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#FF6B35' }}>
-                          💰 {selectedJob.salary} KM
-                          {selectedJob.salaryPeriod ? SALARY_PERIOD[selectedJob.salaryPeriod] : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-6 space-y-5">
-                    {/* Opis */}
-                    <div>
-                      <h3 className="font-bold text-gray-900 mb-3">O poslu</h3>
-                      <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                        {selectedJob.description}
+                      <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '14px', marginBottom: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {job.title}
                       </p>
-                    </div>
 
-                    {/* Kontakt */}
-                    <div className="rounded-2xl p-5" style={{ background: '#FFF7ED' }}>
-                      <h3 className="font-bold text-gray-900 mb-4">Kontaktiraj oglašivača</h3>
-
-                      {/* Profil */}
-                      <div
-                        className="flex items-center gap-3 mb-4 cursor-pointer"
-                        onClick={() => navigate(`/profile/${selectedJob.authorId}`)}>
-                        <div className="w-12 h-12 rounded-xl overflow-hidden">
-                          {selectedJob.author?.profileImage ? (
-                            <img src={selectedJob.author.profileImage} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white font-bold"
-                              style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
-                              {selectedJob.author?.firstName?.[0]}{selectedJob.author?.lastName?.[0]}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            {selectedJob.author?.firstName} {selectedJob.author?.lastName}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {selectedJob.author?.faculty || selectedJob.author?.university || 'Student'}
-                          </p>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: '#FFF7ED', color: '#FF6B35', fontWeight: '600' }}>
+                          {CATEGORIES[job.category]?.emoji} {CATEGORIES[job.category]?.label}
+                        </span>
+                        {job.location && <span style={{ fontSize: '12px', color: '#8E8E93' }}>📍 {job.location}</span>}
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        {selectedJob.contactEmail && (
-                          
-                            <a href={`mailto:${selectedJob.contactEmail}`}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }}>
-                            ✉️ {selectedJob.contactEmail}
-                          </a>
+                      <p style={{ fontSize: '12px', color: '#8E8E93', marginBottom: '10px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {job.description}
+                      </p>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '22px', height: '22px', borderRadius: '50%', overflow: 'hidden' }}>
+                            {job.author?.profileImage ? (
+                              <img src={job.author.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #FF6B35, #FFB800)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '10px', fontWeight: '700' }}>
+                                {job.author?.firstName?.[0]}
+                              </div>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#8E8E93' }}>
+                            {job.author?.firstName} {job.author?.lastName}
+                          </span>
+                        </div>
+                        {job.salary && (
+                          <span style={{ fontSize: '14px', fontWeight: '900', color: '#FF6B35' }}>
+                            {job.salary} KM{job.salaryPeriod ? SALARY_PERIOD[job.salaryPeriod] : ''}
+                          </span>
                         )}
-                        {selectedJob.contactPhone && (
-                          
-                           <a href={`tel:${selectedJob.contactPhone}`}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-80"
-                            style={{ background: 'white', color: '#FF6B35' }}>
-                            📞 {selectedJob.contactPhone}
-                          </a>
-                        )}
-                        {user.id !== selectedJob.authorId && (
-                          <button
-                            onClick={() => navigate(`/chat/${selectedJob.authorId}`)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-80"
-                            style={{ background: 'white', color: '#1C1C1E' }}>
-                            💬 Pošalji poruku
+                      </div>
+                    </div>
+                  </AnimatedSection>
+                ))}
+              </div>
+            </div>
+
+            {/* Detalji */}
+            <div style={{ position: 'sticky', top: '20px', alignSelf: 'flex-start' }}>
+              {!selectedJob ? (
+                <AnimatedScale>
+                  <div style={{ background: '#FDFCF9', borderRadius: '20px', padding: '64px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                    <p style={{ fontSize: '40px', marginBottom: '12px' }}>👈</p>
+                    <p style={{ color: '#8E8E93', fontWeight: '600' }}>Odaberi oglas za pregled</p>
+                  </div>
+                </AnimatedScale>
+              ) : (
+                <AnimatedSection direction="left" delay={0}>
+                  <div style={{ background: '#FDFCF9', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+
+                    {/* Job header */}
+                    <div style={{
+                      padding: '24px',
+                      background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                            <span style={{
+                              fontSize: '12px', fontWeight: '700', padding: '5px 12px', borderRadius: '100px',
+                              background: selectedJob.type === 'NUDIM' ? 'rgba(22,163,74,0.2)' : 'rgba(37,99,235,0.2)',
+                              color: selectedJob.type === 'NUDIM' ? '#4ADE80' : '#60A5FA',
+                            }}>
+                              {selectedJob.type === 'NUDIM' ? '💼 Nudim posao' : '🙋 Tražim posao'}
+                            </span>
+                            {selectedJob.isRemote && (
+                              <span style={{ fontSize: '12px', fontWeight: '600', padding: '5px 12px', borderRadius: '100px', background: 'rgba(124,58,237,0.2)', color: '#A78BFA' }}>
+                                🌐 Remote
+                              </span>
+                            )}
+                          </div>
+                          <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>
+                            {selectedJob.title}
+                          </h2>
+                        </div>
+
+                        {user.id === selectedJob.authorId && (
+                          <button onClick={() => handleDelete(selectedJob.id)} style={{
+                            padding: '8px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                            background: 'rgba(255,59,48,0.15)', color: '#FF3B30',
+                          }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         )}
                       </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                        <span style={{ fontSize: '13px', color: '#8E8E93' }}>
+                          {CATEGORIES[selectedJob.category]?.emoji} {CATEGORIES[selectedJob.category]?.label}
+                        </span>
+                        {selectedJob.location && <span style={{ fontSize: '13px', color: '#8E8E93' }}>📍 {selectedJob.location}</span>}
+                        {selectedJob.hours && <span style={{ fontSize: '13px', color: '#8E8E93' }}>⏰ {selectedJob.hours}</span>}
+                        {selectedJob.salary && (
+                          <span style={{ fontSize: '14px', fontWeight: '800', color: '#FF6B35' }}>
+                            💰 {selectedJob.salary} KM{selectedJob.salaryPeriod ? SALARY_PERIOD[selectedJob.salaryPeriod] : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Datum */}
-                    <p className="text-xs text-gray-400">
-                      Objavljeno: {new Date(selectedJob.createdAt).toLocaleDateString('bs-BA', {
-                        day: 'numeric', month: 'long', year: 'numeric'
-                      })}
-                    </p>
+                    <div style={{ padding: '24px' }}>
+                      <h3 style={{ fontWeight: '800', color: '#1C1C1E', marginBottom: '12px' }}>O poslu</h3>
+                      <p style={{ color: '#3A3A3C', lineHeight: '1.6', fontSize: '14px', marginBottom: '20px', whiteSpace: 'pre-wrap' }}>
+                        {selectedJob.description}
+                      </p>
+
+                      <AnimatedLine />
+
+                      <div style={{ marginTop: '20px', background: '#FFF7ED', borderRadius: '16px', padding: '16px' }}>
+                        <h3 style={{ fontWeight: '800', color: '#1C1C1E', marginBottom: '14px' }}>Kontaktiraj oglašivača</h3>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', cursor: 'pointer' }}
+                          onClick={() => navigate(`/profile/${selectedJob.authorId}`)}>
+                          <div style={{ width: '44px', height: '44px', borderRadius: '12px', overflow: 'hidden' }}>
+                            {selectedJob.author?.profileImage ? (
+                              <img src={selectedJob.author.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #FF6B35, #FFB800)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700' }}>
+                                {selectedJob.author?.firstName?.[0]}{selectedJob.author?.lastName?.[0]}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '14px' }}>
+                              {selectedJob.author?.firstName} {selectedJob.author?.lastName}
+                            </p>
+                            <p style={{ color: '#8E8E93', fontSize: '12px' }}>
+                              {selectedJob.author?.faculty || 'Student'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {selectedJob.contactEmail && (
+                            <a href={`mailto:${selectedJob.contactEmail}`} style={{
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '9px 16px', borderRadius: '12px',
+                              background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                              color: 'white', fontSize: '13px', fontWeight: '700',
+                              textDecoration: 'none',
+                            }}>
+                              ✉️ Email
+                            </a>
+                          )}
+                          {selectedJob.contactPhone && (
+                            <a href={`tel:${selectedJob.contactPhone}`} style={{
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '9px 16px', borderRadius: '12px',
+                              background: 'white', color: '#FF6B35', fontSize: '13px', fontWeight: '700',
+                              textDecoration: 'none',
+                            }}>
+                              📞 {selectedJob.contactPhone}
+                            </a>
+                          )}
+                          {user.id !== selectedJob.authorId && (
+                            <button onClick={() => navigate(`/chat/${selectedJob.authorId}`)} style={{
+                              padding: '9px 16px', borderRadius: '12px', border: 'none',
+                              background: 'white', color: '#1C1C1E', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                            }}>
+                              💬 Poruka
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <p style={{ fontSize: '12px', color: '#AEAEB2', marginTop: '16px' }}>
+                        Objavljeno {new Date(selectedJob.createdAt).toLocaleDateString('bs-BA', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </AnimatedSection>
               )}
             </div>
           </div>

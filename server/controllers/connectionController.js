@@ -87,6 +87,8 @@ const respondToRequest = async (req, res) => {
     const { connectionId } = req.params
     const { action } = req.body
 
+    console.log('respondToRequest:', { connectionId, action, userId: req.user.userId })
+
     if (!['accept', 'reject'].includes(action)) {
       return res.status(400).json({ message: 'Neispravna akcija' })
     }
@@ -103,6 +105,8 @@ const respondToRequest = async (req, res) => {
       }
     })
 
+    console.log('Pronađena konekcija:', connection)
+
     if (!connection) {
       return res.status(404).json({ message: 'Zahtjev nije pronađen' })
     }
@@ -112,7 +116,11 @@ const respondToRequest = async (req, res) => {
     }
 
     if (connection.status !== 'PENDING') {
-      return res.status(400).json({ message: 'Zahtjev je već obrađen' })
+      // Umjesto greške, vrati trenutni status
+      return res.json({
+        message: 'Zahtjev je već obrađen',
+        connection,
+      })
     }
 
     const status = action === 'accept' ? 'ACCEPTED' : 'REJECTED'
@@ -131,7 +139,6 @@ const respondToRequest = async (req, res) => {
     })
 
     if (action === 'accept') {
-      // Aktivnost za pošiljaoca zahtjeva
       await createActivity({
         type: 'CONNECTION_ACCEPTED',
         message: `${updated.receiver.firstName} ${updated.receiver.lastName} je prihvatio/la tvoj zahtjev za kolegu 🎉`,
@@ -157,10 +164,10 @@ const respondToRequest = async (req, res) => {
       connection: updated
     })
   } catch (error) {
+    console.error('respondToRequest greška:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
-
 const getConnectionStatus = async (req, res) => {
   try {
     const { userId } = req.params

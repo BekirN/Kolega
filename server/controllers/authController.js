@@ -154,26 +154,32 @@ const getUserProfile = async (req, res) => {
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         university: true,
         faculty: true,
         yearOfStudy: true,
         profileImage: true,
         bio: true,
         verificationStatus: true,
+        role: true,
         createdAt: true,
         _count: {
           select: {
             shopItems: true,
-            materials: true,
+            uploadedMaterials: true,  // ← nova relacija
             communityPosts: true,
           }
         }
       }
     })
 
-    if (!user) return res.status(404).json({ message: 'Korisnik nije pronađen' })
+    if (!user) {
+      return res.status(404).json({ message: 'Korisnik nije pronađen' })
+    }
+
     res.json(user)
   } catch (error) {
+    console.error('getUserProfile greška:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }

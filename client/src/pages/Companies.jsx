@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCompanies } from '../api/companies'
+import { AnimatedSection, AnimatedScale, AnimatedBlur, AnimatedLine } from '../components/Animated'
 
 const SIZE_LABELS = { SMALL: '1–50', MEDIUM: '51–200', LARGE: '200+' }
 
@@ -30,93 +31,137 @@ export default function Companies() {
 
   const renderStars = (rating) =>
     Array.from({ length: 5 }, (_, i) => (
-      <span key={i} style={{ color: i < Math.round(rating) ? '#FFB800' : '#E5E5EA' }}>★</span>
+      <span key={i} style={{ color: i < Math.round(rating) ? '#FFB800' : '#3A3A3C', fontSize: '14px' }}>★</span>
     ))
 
   return (
-    <div className="min-h-screen" style={{ background: '#F5F5F0' }}>
-      <div className="px-8 pt-8 pb-6" style={{ background: 'linear-gradient(135deg, #1C1C1E, #2C2C2E)' }}>
-        <h1 className="text-3xl font-bold text-white mb-1">Firme & Prakse 🏢</h1>
-        <p style={{ color: '#8E8E93' }} className="mb-6">Pronađi praksu i pročitaj recenzije</p>
+    <div style={{ minHeight: '100vh', background: '#EFEDE8' }}>
 
-        <form onSubmit={(e) => { e.preventDefault(); fetchCompanies() }} className="flex gap-3">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Pretraži firme..."
-            className="flex-1 px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-            style={{ background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C' }}
-          />
-          <input
-            value={industry}
-            onChange={e => setIndustry(e.target.value)}
-            placeholder="Industrija..."
-            className="w-40 px-4 py-2.5 rounded-xl text-sm focus:outline-none"
-            style={{ background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C' }}
-          />
-          <button type="submit" className="px-5 py-2.5 rounded-xl text-white text-sm font-medium"
-            style={{ background: '#FF6B35' }}>
-            Traži
-          </button>
-        </form>
+      <div style={{
+        background: 'linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)',
+        padding: '40px 32px 32px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(255,107,53,0.12), transparent 60%)' }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <AnimatedBlur delay={0}>
+            <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'white', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+              Firme & Prakse 🏢
+            </h1>
+            <p style={{ color: '#8E8E93', fontSize: '15px', marginBottom: '24px' }}>
+              Pronađi praksu i pročitaj recenzije
+            </p>
+          </AnimatedBlur>
+
+          <AnimatedSection delay={0.1} direction="up">
+            <form onSubmit={(e) => { e.preventDefault(); fetchCompanies() }} style={{ display: 'flex', gap: '10px' }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Pretraži firme..."
+                style={{
+                  flex: 1, padding: '11px 16px', borderRadius: '12px',
+                  background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C',
+                  fontSize: '14px', outline: 'none',
+                }}
+              />
+              <input
+                value={industry}
+                onChange={e => setIndustry(e.target.value)}
+                placeholder="Industrija..."
+                style={{
+                  width: '160px', padding: '11px 16px', borderRadius: '12px',
+                  background: '#2C2C2E', color: '#E5E5EA', border: '1px solid #3A3A3C',
+                  fontSize: '14px', outline: 'none',
+                }}
+              />
+              <button type="submit" style={{
+                padding: '11px 20px', borderRadius: '12px', border: 'none',
+                background: '#FF6B35', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+              }}>
+                Traži
+              </button>
+            </form>
+          </AnimatedSection>
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-8 py-8">
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px' }}>
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: '#FF6B35', borderTopColor: 'transparent' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid #FF6B35', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
           </div>
+        ) : companies.length === 0 ? (
+          <AnimatedScale>
+            <div style={{ background: '#FDFCF9', borderRadius: '24px', padding: '64px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <p style={{ fontSize: '48px', marginBottom: '16px' }}>🏢</p>
+              <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '20px' }}>Nema firmi</p>
+            </div>
+          </AnimatedScale>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {companies.map(company => (
-              <div
-                key={company.id}
-                onClick={() => navigate(`/companies/${company.id}`)}
-                className="rounded-2xl p-5 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg"
-                style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #FFF7ED, #FFE0CC)' }}>
-                      🏢
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            {companies.map((company, i) => (
+              <AnimatedSection key={company.id} delay={i * 0.07} direction="up">
+                <div
+                  onClick={() => navigate(`/companies/${company.id}`)}
+                  style={{
+                    background: '#FDFCF9', borderRadius: '20px', padding: '20px',
+                    cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+                        background: 'linear-gradient(135deg, #FFF7ED, #FFE0CC)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+                      }}>
+                        🏢
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '16px' }}>{company.name}</p>
+                        <p style={{ color: '#FF6B35', fontSize: '13px', marginTop: '2px' }}>{company.industry}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{company.name}</h3>
-                      <p className="text-sm" style={{ color: '#FF6B35' }}>{company.industry}</p>
-                    </div>
+                    {company.averageRating > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex' }}>{renderStars(company.averageRating)}</div>
+                        <p style={{ fontSize: '12px', color: '#8E8E93', marginTop: '2px' }}>
+                          {company.averageRating} · {company.reviewCount} rec.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {company.averageRating > 0 && (
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex text-sm">{renderStars(company.averageRating)}</div>
-                      <p className="text-xs text-gray-400 mt-0.5">{company.averageRating} · {company.reviewCount} rec.</p>
+
+                  {company.description && (
+                    <p style={{ color: '#8E8E93', fontSize: '13px', marginBottom: '12px', lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {company.description}
+                    </p>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    {company.city && <span style={{ fontSize: '12px', color: '#8E8E93' }}>📍 {company.city}</span>}
+                    {company.size && <span style={{ fontSize: '12px', color: '#8E8E93' }}>👥 {SIZE_LABELS[company.size]} zaposlenih</span>}
+                  </div>
+
+                  {company.internships?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {company.internships.map(intern => (
+                        <span key={intern.id} style={{
+                          fontSize: '12px', padding: '4px 10px', borderRadius: '100px', fontWeight: '600',
+                          background: intern.isPaid ? 'rgba(22,163,74,0.1)' : '#F5F5F0',
+                          color: intern.isPaid ? '#16A34A' : '#6B7280',
+                        }}>
+                          {intern.title}{intern.isPaid ? ' · Plaćena' : ''}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {company.description && (
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{company.description}</p>
-                )}
-
-                <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
-                  {company.city && <span>📍 {company.city}</span>}
-                  {company.size && <span>👥 {SIZE_LABELS[company.size]} zaposlenih</span>}
-                </div>
-
-                {company.internships?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {company.internships.map(i => (
-                      <span key={i.id} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                        style={{
-                          background: i.isPaid ? '#F0FDF4' : '#F5F5F0',
-                          color: i.isPaid ? '#16A34A' : '#6B7280',
-                        }}>
-                        {i.title} {i.isPaid ? '· Plaćena' : ''}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              </AnimatedSection>
             ))}
           </div>
         )}

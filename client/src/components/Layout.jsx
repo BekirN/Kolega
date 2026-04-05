@@ -2,7 +2,7 @@ import Sidebar from './Sidebar'
 
 export default function Layout({ children }) {
   return (
-    <div className="flex min-h-screen" style={{ background: '#EFEDE8' }}>
+    <div className="flex min-h-screen" style={{ background: '#E2DDD6' }}>
       <Sidebar />
       <main className="flex-1 ml-64 min-h-screen">
         {children}

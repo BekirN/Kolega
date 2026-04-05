@@ -358,6 +358,62 @@ const leaveGroup = async (req, res) => {
   }
 }
 
+const getUnreadMessagesCount = async (req, res) => {
+  try {
+    const userId = req.user.userId
+
+    // Nađi sve konverzacije korisnika
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        participants: { some: { userId } }
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        _count: { select: { messages: true } }
+      }
+    })
+
+    // Nađi zadnje pročitano za svaku konverzaciju
+    const reads = await prisma.conversationRead.findMany({
+      where: { userId }
+    })
+
+    const readMap = {}
+    reads.forEach(r => { readMap[r.conversationId] = r.lastReadAt })
+
+    let unreadCount = 0
+    for (const conv of conversations) {
+      const lastRead = readMap[conv.id]
+      if (!lastRead) {
+        // Nikad nije čitao, broji sve poruke koje nisu moje
+        const count = await prisma.message.count({
+          where: {
+            conversationId: conv.id,
+            senderId: { not: userId }
+          }
+        })
+        if (count > 0) unreadCount++
+      } else {
+        const unread = await prisma.message.count({
+          where: {
+            conversationId: conv.id,
+            senderId: { not: userId },
+            createdAt: { gt: lastRead }
+          }
+        })
+        if (unread > 0) unreadCount++
+      }
+    }
+
+    res.json({ count: unreadCount })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
 module.exports = {
   getConversations,
   getOrCreateConversation,
@@ -368,4 +424,6 @@ module.exports = {
   getConversationMedia,
   addGroupMember,
   leaveGroup,
+  getUnreadMessagesCount,
+
 }

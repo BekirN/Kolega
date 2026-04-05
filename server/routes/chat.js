@@ -10,6 +10,7 @@ const {
   getConversationMedia,
   addGroupMember,
   leaveGroup,
+  getUnreadMessagesCount,
 } = require('../controllers/chatController')
 const { protect } = require('../middleware/auth')
 
@@ -21,5 +22,6 @@ router.post('/conversations/group', protect, createGroupChat)
 router.post('/conversations/:conversationId/members', protect, addGroupMember)
 router.delete('/conversations/:conversationId/leave', protect, leaveGroup)
 router.post('/upload', protect, upload.single('file'), uploadFile)
+router.get('/unread-count', protect, getUnreadMessagesCount)
 
 module.exports = router
