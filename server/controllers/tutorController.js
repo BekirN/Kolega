@@ -1,5 +1,6 @@
 const prisma = require('../prisma/client')
 const { createActivity } = require('../utils/activityHelper')
+const { sendBookingConfirmationEmail } = require('../config/mailgun')
 
 const getTutors = async (req, res) => {
   try {
@@ -262,10 +263,14 @@ const updateBookingStatus = async (req, res) => {
       include: {
         tutor: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true } }
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true }
+            }
           }
         },
-        student: { select: { id: true, firstName: true, lastName: true } }
+        student: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        }
       }
     })
 
@@ -279,8 +284,8 @@ const updateBookingStatus = async (req, res) => {
       data: { status }
     })
 
-    // Aktivnost za studenta
     if (status === 'CONFIRMED') {
+      // Aktivnost
       await createActivity({
         type: 'BOOKING_CONFIRMED',
         message: `Tvoj termin za instrukcije iz "${booking.subject}" je potvrđen! ✅`,
@@ -289,7 +294,25 @@ const updateBookingStatus = async (req, res) => {
         referenceId: booking.id,
         link: `/tutoring/my-bookings`,
       })
+
+      // Email studentu
+      if (booking.student?.email) {
+        try {
+          const { sendBookingConfirmationEmail } = require('../config/mailgun')
+          await sendBookingConfirmationEmail(
+            booking.student.email,
+            booking.student.firstName,
+            booking.subject,
+            booking.date,
+            `${booking.tutor.user.firstName} ${booking.tutor.user.lastName}`
+          )
+        } catch (emailErr) {
+          console.error('Email greška (booking confirmed):', emailErr.message)
+        }
+      }
+
     } else if (status === 'CANCELLED') {
+      // Aktivnost
       await createActivity({
         type: 'BOOKING_CANCELLED',
         message: `Tvoj termin za instrukcije iz "${booking.subject}" je otkazan.`,
@@ -298,6 +321,22 @@ const updateBookingStatus = async (req, res) => {
         referenceId: booking.id,
         link: `/tutoring/my-bookings`,
       })
+
+      // Email studentu o otkazivanju
+      if (booking.student?.email) {
+        try {
+          const { sendBookingCancelledEmail } = require('../config/mailgun')
+          await sendBookingCancelledEmail(
+            booking.student.email,
+            booking.student.firstName,
+            booking.subject,
+            booking.date,
+            `${booking.tutor.user.firstName} ${booking.tutor.user.lastName}`
+          )
+        } catch (emailErr) {
+          console.error('Email greška (booking cancelled):', emailErr.message)
+        }
+      }
     }
 
     res.json({ message: 'Status ažuriran!', booking: updated })

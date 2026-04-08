@@ -38,3 +38,12 @@ export const searchUsers = async (q) => {
   const response = await api.get(`/auth/search?q=${q}`)
   return response.data
 }
+
+export const uploadIndexImage = async (file) => {
+  const formData = new FormData()
+  formData.append('indexImage', file)
+  const res = await api.post('/auth/upload-index', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return res.data
+}

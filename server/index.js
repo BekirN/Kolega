@@ -14,6 +14,8 @@ const communityRoutes = require('./routes/community')
 const chatRoutes = require('./routes/chat')
 const materialRoutes = require('./routes/materials')
 const housingRoutes = require('./routes/housing')
+const adminRoutes = require('./routes/admin')
+
 const app = express()
 const server = http.createServer(app)
 
@@ -41,6 +43,7 @@ app.use('/api/connections', connectionRoutes)
 app.use('/api/activities', activityRoutes)
 app.use('/api/materials', materialRoutes)
 app.use('/api/housing', housingRoutes)
+app.use('/api/admin', adminRoutes)
 // Socket.io logic
 const jwt = require('jsonwebtoken')
 

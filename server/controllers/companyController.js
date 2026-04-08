@@ -1,6 +1,6 @@
 const prisma = require('../prisma/client')
 const { createActivity } = require('../utils/activityHelper')
-
+const { sendNewInternshipEmail } = require('../config/mailgun')
 const getCompanies = async (req, res) => {
   try {
     const { search, industry, city } = req.query
@@ -93,6 +93,26 @@ const createInternship = async (req, res) => {
         companyId: id,
       }
     })
+    // Pošalji email svim korisnicima
+    try {
+      const users = await prisma.user.findMany({
+        where: { emailVerified: true },
+        select: { email: true, firstName: true }
+      })
+
+      // Pošalji u batch (max 10 istovremeno)
+      const batchSize = 10
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize)
+        await Promise.allSettled(
+          batch.map(u => sendNewInternshipEmail(
+            u.email, u.firstName, company.name, internship.title
+          ))
+        )
+      }
+    } catch (emailErr) {
+      console.error('Email notifikacija greška:', emailErr)
+    }
 
     res.status(201).json({ message: 'Praksa kreirana!', internship })
   } catch (error) {

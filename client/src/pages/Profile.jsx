@@ -1,8 +1,10 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useState,  useRef  } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getUserProfile, updateProfile, updateProfileImage } from '../api/auth'
 import { sendConnectionRequest, getConnectionStatus, respondToRequest } from '../api/connections'
 import { getSocket } from '../services/socket'
+import { uploadIndexImage } from '../api/auth'
+
 
 const YEAR_LABELS = {
   1: '1. godina', 2: '2. godina', 3: '3. godina',
@@ -23,7 +25,10 @@ export default function Profile() {
   const [connection, setConnection] = useState(null)
   const [connectionLoading, setConnectionLoading] = useState(false)
   const [formData, setFormData] = useState({})
-
+  // State
+  const [indexUploading, setIndexUploading] = useState(false)
+  const [verificationMsg, setVerificationMsg] = useState('')
+  const indexInputRef = useRef(null)
   const refreshConnectionStatus = async () => {
     if (!isOwnProfile && id) {
       try {
@@ -99,7 +104,25 @@ export default function Profile() {
       setSaving(false)
     }
   }
-
+  const handleIndexUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setIndexUploading(true)
+    try {
+      const data = await uploadIndexImage(file)
+      setProfile(prev => ({ ...prev, verificationStatus: 'PENDING' }))
+      const updatedUser = { ...currentUser, verificationStatus: 'PENDING' }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      setVerificationMsg(data.message)
+      setTimeout(() => setVerificationMsg(''), 5000)
+    } catch (err) {
+      setVerificationMsg(err.response?.data?.message || 'Greška pri uploadu')
+      setTimeout(() => setVerificationMsg(''), 4000)
+    } finally {
+      setIndexUploading(false)
+      e.target.value = ''
+    }
+  }
   const handleImageUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -326,28 +349,129 @@ export default function Profile() {
                 )}
               </div>
 
+              {/* Verifikacija badge + upload */}
               {isOwnProfile && (
-                <label style={{
-                  position: 'absolute', bottom: '-4px', right: '-4px',
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', boxShadow: '0 2px 8px rgba(255,107,53,0.4)',
-                }}>
-                  {imageUploading ? (
+                <div style={{ marginTop: '20px' }}>
+
+                  {/* Status badge */}
+                  {profile.verificationStatus === 'UNVERIFIED' && (
                     <div style={{
-                      width: '14px', height: '14px', borderRadius: '50%',
-                      border: '2px solid white', borderTopColor: 'transparent',
-                      animation: 'spin 0.8s linear infinite',
-                    }} />
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                      background: '#EEEBE5', borderRadius: '16px', padding: '20px',
+                      border: '1.5px dashed #D8D4CC', marginBottom: '16px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                        <div style={{
+                          width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0,
+                          background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+                        }}>🎓</div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '15px', marginBottom: '4px' }}>
+                            Verificiraj student status
+                          </p>
+                          <p style={{ color: '#7A7570', fontSize: '13px', lineHeight: '1.5', marginBottom: '14px' }}>
+                            Uploaduj sliku svog indeksa da dobiješ verifikacijski badge koji pokazuje da si student.
+                          </p>
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                            {['📸 Fotografija indeksa', '🔒 Privatno i sigurno', '⚡ Brza provjera'].map(tip => (
+                              <span key={tip} style={{
+                                fontSize: '12px', padding: '4px 10px', borderRadius: '100px',
+                                background: 'rgba(255,107,53,0.1)', color: '#FF6B35', fontWeight: '600',
+                              }}>
+                                {tip}
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => indexInputRef.current?.click()}
+                            disabled={indexUploading}
+                            style={{
+                              padding: '10px 20px', borderRadius: '12px', border: 'none',
+                              background: indexUploading ? '#D8D4CC' : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                              color: indexUploading ? '#9A9690' : 'white',
+                              fontWeight: '700', fontSize: '14px', cursor: indexUploading ? 'not-allowed' : 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '8px',
+                            }}>
+                            {indexUploading ? (
+                              <>
+                                <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                                Uploading...
+                              </>
+                            ) : '📤 Upload indeksa'}
+                          </button>
+                          <input ref={indexInputRef} type="file" accept="image/*" onChange={handleIndexUpload} style={{ display: 'none' }} />
+                        </div>
+                      </div>
+                    </div>
                   )}
-                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                </label>
+
+                  {profile.verificationStatus === 'PENDING' && (
+                    <div style={{
+                      background: 'rgba(255,184,0,0.1)', borderRadius: '16px', padding: '16px 20px',
+                      border: '1px solid rgba(255,184,0,0.3)', marginBottom: '16px',
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                    }}>
+                      <span style={{ fontSize: '24px' }}>⏳</span>
+                      <div>
+                        <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '14px', marginBottom: '2px' }}>
+                          Zahtjev na čekanju
+                        </p>
+                        <p style={{ color: '#7A7570', fontSize: '13px' }}>
+                          Admin pregledava tvoj indeks. Bit ćeš obaviješten/a u Aktivnostima.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.verificationStatus === 'REJECTED' && (
+                    <div style={{
+                      background: 'rgba(255,59,48,0.08)', borderRadius: '16px', padding: '16px 20px',
+                      border: '1px solid rgba(255,59,48,0.2)', marginBottom: '16px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                        <span style={{ fontSize: '24px' }}>❌</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '14px', marginBottom: '4px' }}>
+                            Zahtjev odbijen
+                          </p>
+                          {profile.verificationNote && (
+                            <p style={{ color: '#FF3B30', fontSize: '13px', marginBottom: '10px' }}>
+                              Razlog: {profile.verificationNote}
+                            </p>
+                          )}
+                          <p style={{ color: '#7A7570', fontSize: '13px', marginBottom: '12px' }}>
+                            Pokušaj ponovo sa jasnom slikom indeksa.
+                          </p>
+                          <button
+                            onClick={() => indexInputRef.current?.click()}
+                            disabled={indexUploading}
+                            style={{
+                              padding: '8px 16px', borderRadius: '10px', border: 'none',
+                              background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                              color: 'white', fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+                            }}>
+                            📤 Pokušaj ponovo
+                          </button>
+                          <input ref={indexInputRef} type="file" accept="image/*" onChange={handleIndexUpload} style={{ display: 'none' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Success/Error poruka */}
+                  {verificationMsg && (
+                    <div style={{
+                      padding: '12px 16px', borderRadius: '12px', marginBottom: '12px',
+                      background: verificationMsg.includes('Greška') || verificationMsg.includes('odbijen')
+                        ? 'rgba(255,59,48,0.1)' : 'rgba(22,163,74,0.1)',
+                      color: verificationMsg.includes('Greška') || verificationMsg.includes('odbijen')
+                        ? '#FF3B30' : '#16A34A',
+                      fontSize: '13px', fontWeight: '600',
+                    }}>
+                      {verificationMsg}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

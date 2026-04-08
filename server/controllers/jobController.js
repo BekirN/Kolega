@@ -1,6 +1,6 @@
 const prisma = require('../prisma/client')
 const { createActivity } = require('../utils/activityHelper')
-
+const { sendNewJobEmail } = require('../config/mailgun')
 const getJobs = async (req, res) => {
   try {
     const { type, category, search, isRemote } = req.query
@@ -89,6 +89,28 @@ const createJob = async (req, res) => {
         }
       }
     })
+
+    if (job.type === 'NUDIM') {
+      try {
+        const users = await prisma.user.findMany({
+          where: {
+            emailVerified: true,
+            id: { not: req.user.userId } // Ne šalji autoru
+          },
+          select: { email: true, firstName: true }
+        })
+
+        const batchSize = 10
+        for (let i = 0; i < users.length; i += batchSize) {
+          const batch = users.slice(i, i + batchSize)
+          await Promise.allSettled(
+            batch.map(u => sendNewJobEmail(u.email, u.firstName, job.title, job.type))
+          )
+        }
+      } catch (emailErr) {
+        console.error('Email greška:', emailErr)
+      }
+    }
 
     res.status(201).json({ message: 'Oglas objavljen!', job })
   } catch (error) {

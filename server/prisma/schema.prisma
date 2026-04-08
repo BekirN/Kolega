@@ -22,9 +22,15 @@ model User {
   profileImage        String?
   bio                 String?
 
+  indexImage          String?
   verificationStatus  VerificationStatus @default(UNVERIFIED)
   verificationMethod  VerificationMethod?
   verificationDocUrl  String?
+  verificationNote    String?
+
+  emailVerified       Boolean   @default(false)
+  verificationCode    String?
+  verificationCodeExp DateTime?
 
   role                Role               @default(STUDENT)
 

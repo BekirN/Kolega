@@ -20,7 +20,13 @@ export default function Login() {
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       initSocket()
-      navigate('/dashboard')
+
+      // Provjeri da li je email verifikovan
+      if (!data.user.emailVerified) {
+        navigate('/verify-email')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Pogrešan email ili password')
     } finally {

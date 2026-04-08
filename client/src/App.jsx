@@ -25,7 +25,8 @@ import { useEffect } from 'react'
 import Materials from './pages/Materials'
 import Housing from './pages/Housing'
 import NewHousing from './pages/NewHousing'
-
+import VerifyEmail from './pages/VerifyEmail'
+import Admin from './pages/Admin'
 
 import { initSocket, disconnectSocket } from './services/socket'
 const PublicRoute = ({ children }) => {
@@ -36,7 +37,11 @@ const PublicRoute = ({ children }) => {
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token')
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+
   if (!token) return <Navigate to="/login" />
+  if (!user.emailVerified) return <Navigate to="/verify-email" />
+
   return <Layout>{children}</Layout>
 }
 
@@ -76,6 +81,8 @@ function App() {
           <Route path="/materials" element={<PrivateRoute><Materials /></PrivateRoute>} />
           <Route path="/housing" element={<PrivateRoute><Housing /></PrivateRoute>} />
           <Route path="/housing/new" element={<PrivateRoute><NewHousing /></PrivateRoute>} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
         </Routes>
       </NotificationProvider>
     </BrowserRouter>

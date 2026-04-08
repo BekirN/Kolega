@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
-
+import { initSocket } from '../services/socket'
 export default function Register() {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
@@ -21,7 +21,14 @@ export default function Register() {
       const data = await register(formData)
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      navigate('/dashboard')
+      initSocket()
+
+      // Idi na verifikaciju emaila
+      if (data.requiresEmailVerification) {
+        navigate('/verify-email')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Greška pri registraciji')
     } finally {

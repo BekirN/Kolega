@@ -16,65 +16,166 @@ const isStudentEmail = (email) => {
   const domain = email.split('@')[1]
   return STUDENT_EMAIL_DOMAINS.includes(domain)
 }
+const {
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} = require('../config/mailgun')
 
+// Helper za generisanje koda
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
 // REGISTER
 const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, university, faculty, yearOfStudy } = req.body
+    const { firstName, lastName, email, password, university, faculty, yearOfStudy } = req.body
 
-    // Provjeri da li korisnik vec postoji
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) {
-      return res.status(400).json({ message: 'Korisnik sa ovim emailom već postoji' })
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ message: 'Sva obavezna polja su potrebna' })
     }
 
-    // Hash password
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      return res.status(400).json({ message: 'Email je već registrovan' })
+    }
+
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Odredi verifikacioni status
-    const studentEmail = isStudentEmail(email)
-    const verificationStatus = studentEmail ? 'VERIFIED' : 'UNVERIFIED'
-    const verificationMethod = studentEmail ? 'STUDENT_EMAIL' : null
+    // Provjeri je li tvoj test email – samo njemu šalji verifikaciju
+    const RESEND_TEST_EMAIL = process.env.RESEND_TEST_EMAIL // bekirnokic633@gmail.com
+    const needsVerification = email === RESEND_TEST_EMAIL
 
-    // Kreiraj korisnika
+    const code = generateVerificationCode()
+    const codeExpiry = new Date(Date.now() + 15 * 60 * 1000)
+
     const user = await prisma.user.create({
       data: {
-        email,
+        firstName, lastName, email,
         password: hashedPassword,
-        firstName,
-        lastName,
-        university,
-        faculty,
+        university: university || null,
+        faculty: faculty || null,
         yearOfStudy: yearOfStudy ? parseInt(yearOfStudy) : null,
-        verificationStatus,
-        verificationMethod,
+        // Auto-verifikuj sve osim test emaila
+        emailVerified: !needsVerification,
+        verificationCode: needsVerification ? code : null,
+        verificationCodeExp: needsVerification ? codeExpiry : null,
       }
     })
 
-    // Kreiraj JWT token
+    // Pošalji email samo ako je test email
+    if (needsVerification) {
+      try {
+        await sendVerificationEmail(email, firstName, code)
+      } catch (emailErr) {
+        console.error('Email greška:', emailErr)
+      }
+    }
+
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     )
 
     res.status(201).json({
-      message: studentEmail
-        ? 'Registracija uspješna! Studentski email potvrđen automatski ✓'
-        : 'Registracija uspješna! Uploadujte dokument za verifikaciju.',
+      message: needsVerification
+        ? 'Registracija uspješna! Provjeri email za verifikacijski kod.'
+        : 'Registracija uspješna!',
       token,
       user: {
         id: user.id,
-        email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        email: user.email,
+        emailVerified: user.emailVerified,
         verificationStatus: user.verificationStatus,
+        faculty: user.faculty,
+        university: user.university,
+        profileImage: user.profileImage,
         role: user.role,
+      },
+      requiresEmailVerification: needsVerification,
+    })
+  } catch (error) {
+    console.error('Register greška:', error)
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+const verifyEmail = async (req, res) => {
+  try {
+    const { code } = req.body
+    const userId = req.user.userId
+
+    if (!code) {
+      return res.status(400).json({ message: 'Kod je obavezan' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+
+    if (!user) {
+      return res.status(404).json({ message: 'Korisnik nije pronađen' })
+    }
+
+    if (user.emailVerified) {
+      return res.json({ message: 'Email je već verifikovan', emailVerified: true })
+    }
+
+    if (!user.verificationCode || !user.verificationCodeExp) {
+      return res.status(400).json({ message: 'Nema aktivnog verifikacijskog koda' })
+    }
+
+    if (new Date() > user.verificationCodeExp) {
+      return res.status(400).json({ message: 'Verifikacijski kod je istekao. Zatraži novi.' })
+    }
+
+    if (user.verificationCode !== code.trim()) {
+      return res.status(400).json({ message: 'Pogrešan verifikacijski kod' })
+    }
+
+    // Verifikuj email
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerified: true,
+        verificationCode: null,
+        verificationCodeExp: null,
       }
     })
 
+    // Pošalji welcome email
+    try {
+      await sendWelcomeEmail(user.email, user.firstName)
+    } catch (emailErr) {
+      console.error('Welcome email greška:', emailErr)
+    }
+
+    res.json({ message: 'Email uspješno verifikovan! 🎉', emailVerified: true })
   } catch (error) {
-    console.error(error)
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+const resendVerificationCode = async (req, res) => {
+  try {
+    const userId = req.user.userId
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+
+    if (!user) return res.status(404).json({ message: 'Korisnik nije pronađen' })
+    if (user.emailVerified) return res.status(400).json({ message: 'Email je već verifikovan' })
+
+    const code = generateVerificationCode()
+    const codeExpiry = new Date(Date.now() + 15 * 60 * 1000)
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { verificationCode: code, verificationCodeExp: codeExpiry }
+    })
+
+    await sendVerificationEmail(user.email, user.firstName, code)
+
+    res.json({ message: 'Novi kod je poslan na tvoj email!' })
+  } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
@@ -113,6 +214,7 @@ const login = async (req, res) => {
         lastName: user.lastName,
         verificationStatus: user.verificationStatus,
         role: user.role,
+        emailVerified: user.emailVerified,
       }
     })
 
@@ -279,4 +381,86 @@ const searchUsers = async (req, res) => {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
-module.exports = { register, login, getMe, getUserProfile, updateProfile, updateProfileImage, searchUsers }
+
+const uploadIndexImage = async (req, res) => {
+  try {
+    const cloudinary = require('../config/cloudinary')
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Slika nije uploadovana' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } })
+
+    if (user.verificationStatus === 'VERIFIED') {
+      return res.status(400).json({ message: 'Već ste verifikovani' })
+    }
+
+    if (user.verificationStatus === 'PENDING') {
+      return res.status(400).json({ message: 'Zahtjev je već na čekanju' })
+    }
+
+    // Upload na Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'kolega/index-verification',
+          resource_type: 'image',
+          // Privatna slika – samo admini mogu vidjeti
+          type: 'upload',
+        },
+        (error, result) => error ? reject(error) : resolve(result)
+      )
+      stream.end(req.file.buffer)
+    })
+
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        indexImage: result.secure_url,
+        verificationStatus: 'PENDING',
+        verificationNote: null,
+      }
+    })
+
+    // Notifikacija svim adminima
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true }
+    })
+
+    if (admins.length > 0) {
+      await prisma.activity.createMany({
+        data: admins.map(admin => ({
+          type: 'GENERAL',
+          message: `${user.firstName} ${user.lastName} je podnio/la zahtjev za verifikaciju studenta 📋`,
+          userId: admin.id,
+          actorId: req.user.userId,
+          referenceId: req.user.userId,
+          link: `/admin`,
+          isRead: false,
+        }))
+      })
+
+      try {
+        const { io } = require('../index')
+        admins.forEach(admin => {
+          io.to(`user_${admin.id}`).emit('new_activity', {
+            type: 'GENERAL',
+            message: `${user.firstName} ${user.lastName} je podnio/la zahtjev za verifikaciju 📋`,
+            link: '/admin',
+          })
+        })
+      } catch (socketErr) {
+        console.error('Socket greška:', socketErr.message)
+      }
+    }
+
+    res.json({ message: 'Zahtjev poslan! Admin će pregledati tvoj indeks.', verificationStatus: 'PENDING' })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+module.exports = { register, login, getMe, getUserProfile, updateProfile, updateProfileImage, searchUsers, verifyEmail,
+  resendVerificationCode,uploadIndexImage, }
