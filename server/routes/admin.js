@@ -12,6 +12,8 @@ const {
   sendBroadcastEmail,
   sendSystemNotification,
   getAllContent,
+  getPendingVerifications,  
+  reviewVerification,  
 } = require('../controllers/adminController')
 
 // Sve admin rute zahtijevaju autentikaciju + admin rolu
@@ -26,5 +28,8 @@ router.get('/content/:type', getAllContent)
 router.delete('/content/:type/:id', deleteContent)
 router.post('/broadcast', sendBroadcastEmail)
 router.post('/notify', sendSystemNotification)
+
+router.get('/verifications', getPendingVerifications)
+router.put('/verifications/:id', reviewVerification)
 
 module.exports = router

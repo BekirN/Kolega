@@ -40,11 +40,6 @@ const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
-
-    // Provjeri je li tvoj test email – samo njemu šalji verifikaciju
-    const RESEND_TEST_EMAIL = process.env.RESEND_TEST_EMAIL // bekirnokic633@gmail.com
-    const needsVerification = email === RESEND_TEST_EMAIL
-
     const code = generateVerificationCode()
     const codeExpiry = new Date(Date.now() + 15 * 60 * 1000)
 
@@ -55,20 +50,20 @@ const register = async (req, res) => {
         university: university || null,
         faculty: faculty || null,
         yearOfStudy: yearOfStudy ? parseInt(yearOfStudy) : null,
-        // Auto-verifikuj sve osim test emaila
-        emailVerified: !needsVerification,
-        verificationCode: needsVerification ? code : null,
-        verificationCodeExp: needsVerification ? codeExpiry : null,
+        emailVerified: false,
+        verificationCode: code,
+        verificationCodeExp: codeExpiry,
+        verificationStatus: 'UNVERIFIED',
       }
     })
 
-    // Pošalji email samo ako je test email
-    if (needsVerification) {
-      try {
-        await sendVerificationEmail(email, firstName, code)
-      } catch (emailErr) {
-        console.error('Email greška:', emailErr)
-      }
+    // Pokušaj poslati email – ako ne uspije, nije problem za registraciju
+    try {
+      await sendVerificationEmail(email, firstName, code)
+      console.log(`Verifikacijski email poslan na ${email}`)
+    } catch (emailErr) {
+      console.error('Email greška:', emailErr.message)
+      // Nastavi registraciju čak i ako email ne stigne
     }
 
     const token = jwt.sign(
@@ -78,9 +73,7 @@ const register = async (req, res) => {
     )
 
     res.status(201).json({
-      message: needsVerification
-        ? 'Registracija uspješna! Provjeri email za verifikacijski kod.'
-        : 'Registracija uspješna!',
+      message: 'Registracija uspješna! Provjeri email za verifikacijski kod.',
       token,
       user: {
         id: user.id,
@@ -94,14 +87,13 @@ const register = async (req, res) => {
         profileImage: user.profileImage,
         role: user.role,
       },
-      requiresEmailVerification: needsVerification,
+      requiresEmailVerification: true,
     })
   } catch (error) {
     console.error('Register greška:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
-
 const verifyEmail = async (req, res) => {
   try {
     const { code } = req.body
@@ -263,6 +255,8 @@ const getUserProfile = async (req, res) => {
         profileImage: true,
         bio: true,
         verificationStatus: true,
+        verificationNote: true,     
+        emailVerified: true,  
         role: true,
         createdAt: true,
         _count: {
@@ -384,6 +378,9 @@ const searchUsers = async (req, res) => {
 
 const uploadIndexImage = async (req, res) => {
   try {
+    console.log('=== uploadIndexImage ===')
+    console.log('userId:', req.user.userId)
+
     const cloudinary = require('../config/cloudinary')
 
     if (!req.file) {
@@ -391,6 +388,7 @@ const uploadIndexImage = async (req, res) => {
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } })
+    console.log('Trenutni status:', user.verificationStatus)
 
     if (user.verificationStatus === 'VERIFIED') {
       return res.status(400).json({ message: 'Već ste verifikovani' })
@@ -400,21 +398,17 @@ const uploadIndexImage = async (req, res) => {
       return res.status(400).json({ message: 'Zahtjev je već na čekanju' })
     }
 
-    // Upload na Cloudinary
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'kolega/index-verification',
-          resource_type: 'image',
-          // Privatna slika – samo admini mogu vidjeti
-          type: 'upload',
-        },
+        { folder: 'kolega/index-verification', resource_type: 'image' },
         (error, result) => error ? reject(error) : resolve(result)
       )
       stream.end(req.file.buffer)
     })
 
-    await prisma.user.update({
+    console.log('Cloudinary upload OK:', result.secure_url)
+
+    const updated = await prisma.user.update({
       where: { id: req.user.userId },
       data: {
         indexImage: result.secure_url,
@@ -423,11 +417,15 @@ const uploadIndexImage = async (req, res) => {
       }
     })
 
-    // Notifikacija svim adminima
+    console.log('User ažuriran:', updated.verificationStatus, updated.indexImage)
+
+    // Notifikacija adminima
     const admins = await prisma.user.findMany({
       where: { role: 'ADMIN' },
       select: { id: true }
     })
+
+    console.log('Admini:', admins.length)
 
     if (admins.length > 0) {
       await prisma.activity.createMany({
@@ -456,8 +454,12 @@ const uploadIndexImage = async (req, res) => {
       }
     }
 
-    res.json({ message: 'Zahtjev poslan! Admin će pregledati tvoj indeks.', verificationStatus: 'PENDING' })
+    res.json({
+      message: 'Zahtjev poslan! Admin će pregledati tvoj indeks.',
+      verificationStatus: 'PENDING'
+    })
   } catch (error) {
+    console.error('uploadIndexImage GREŠKA:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }

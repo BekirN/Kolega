@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getTutorById, createBooking, createTutorReview } from '../api/tutoring'
-
-const STATUS_LABELS = {
-  PENDING: { label: 'Na čekanju', color: 'bg-yellow-50 text-yellow-600' },
-  CONFIRMED: { label: 'Potvrđen', color: 'bg-green-50 text-green-600' },
-  CANCELLED: { label: 'Otkazan', color: 'bg-red-50 text-red-500' },
-  COMPLETED: { label: 'Završen', color: 'bg-gray-100 text-gray-500' },
-}
+import { AnimatedSection, AnimatedScale, AnimatedBlur } from '../components/Animated'
 
 export default function TutorDetail() {
   const { id } = useParams()
@@ -17,14 +11,12 @@ export default function TutorDetail() {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [bookingData, setBookingData] = useState({
-    subject: '',
-    date: '',
-    duration: '60',
-    message: '',
+    subject: '', date: '', duration: '60', message: '',
   })
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' })
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingError, setBookingError] = useState('')
+  const [bookingSuccess, setBookingSuccess] = useState(false)
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
@@ -48,7 +40,8 @@ export default function TutorDetail() {
     try {
       await createBooking(id, bookingData)
       setShowBookingForm(false)
-      alert('Termin uspješno rezervisan! Tutor će potvrditi termin.')
+      setBookingSuccess(true)
+      setTimeout(() => setBookingSuccess(false), 4000)
     } catch (err) {
       setBookingError(err.response?.data?.message || 'Greška pri rezervaciji')
     } finally {
@@ -68,20 +61,46 @@ export default function TutorDetail() {
     }
   }
 
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < Math.round(rating) ? 'text-yellow-400' : 'text-gray-200'}>★</span>
-    ))
-  }
-
   const calculatePrice = () => {
     if (!tutor || !bookingData.duration) return 0
     return Math.round((tutor.hourlyRate / 60) * parseInt(bookingData.duration) * 100) / 100
   }
 
+  const renderStars = (rating, interactive = false, onSelect = null) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <span
+        key={i}
+        onClick={() => interactive && onSelect?.(i + 1)}
+        style={{
+          fontSize: interactive ? '28px' : '16px',
+          color: i < Math.round(rating) ? '#FFB800' : '#D8D4CC',
+          cursor: interactive ? 'pointer' : 'default',
+          transition: 'color 0.15s, transform 0.15s',
+        }}
+        onMouseEnter={e => { if (interactive) e.currentTarget.style.transform = 'scale(1.2)' }}
+        onMouseLeave={e => { if (interactive) e.currentTarget.style.transform = 'scale(1)' }}
+      >★</span>
+    ))
+  }
+
+  const inputStyle = {
+    background: '#EEEBE5', border: '1.5px solid #D8D4CC', color: '#1C1C1E',
+    borderRadius: '12px', padding: '11px 14px', fontSize: '14px', width: '100%',
+    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  }
+
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400">Učitavanje...</p>
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: '#E2DDD6',
+    }}>
+      <div style={{
+        width: '32px', height: '32px', borderRadius: '50%',
+        border: '2px solid #FF6B35', borderTopColor: 'transparent',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
@@ -90,219 +109,534 @@ export default function TutorDetail() {
   const isOwnProfile = tutor.user?.id === user.id
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/tutoring')} className="text-gray-400 hover:text-gray-600">
-          Nazad na instrukcije
-        </button>
-      </nav>
+    <div style={{ minHeight: '100vh', background: '#E2DDD6' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+      {/* Hero Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1C1C1E 0%, #2C1810 60%, #1C1C1E 100%)',
+        padding: '32px 40px 40px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 50%, rgba(255,107,53,0.18), transparent 55%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 20% 80%, rgba(255,184,0,0.1), transparent 50%)' }} />
 
-        {/* Profil tutora */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-2xl">
-                {tutor.user?.firstName?.[0]}{tutor.user?.lastName?.[0]}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {tutor.user?.firstName} {tutor.user?.lastName}
-                </h1>
-                {tutor.user?.faculty && (
-                  <p className="text-gray-500">{tutor.user.faculty}</p>
-                )}
-                {tutor.averageRating > 0 && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="flex">{renderStars(tutor.averageRating)}</div>
-                    <span className="text-sm text-gray-400">
-                      {tutor.averageRating} ({tutor.reviewCount} recenzija)
-                    </span>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '860px', margin: '0 auto' }}>
+          <AnimatedBlur delay={0}>
+            <button
+              onClick={() => navigate('/tutoring')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: 'none', border: 'none', color: '#8E8E93',
+                fontSize: '14px', cursor: 'pointer', marginBottom: '20px', padding: 0,
+              }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Nazad na instrukcije
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                {/* Avatar */}
+                <div style={{
+                  width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', flexShrink: 0,
+                  border: '3px solid rgba(255,255,255,0.1)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                }}>
+                  {tutor.user?.profileImage ? (
+                    <img src={tutor.user.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{
+                      width: '100%', height: '100%',
+                      background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontWeight: '900', fontSize: '28px',
+                    }}>
+                      {tutor.user?.firstName?.[0]}{tutor.user?.lastName?.[0]}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                    <h1 style={{
+                      fontSize: '26px', fontWeight: '900', color: 'white',
+                      letterSpacing: '-0.02em', margin: 0,
+                    }}>
+                      {tutor.user?.firstName} {tutor.user?.lastName}
+                    </h1>
+                    {tutor.user?.verificationStatus === 'VERIFIED' && (
+                      <span style={{
+                        fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '100px',
+                        background: 'rgba(22,163,74,0.2)', color: '#4ADE80',
+                        border: '1px solid rgba(22,163,74,0.3)',
+                      }}>
+                        🎓 Verifikovani Student
+                      </span>
+                    )}
                   </div>
-                )}
+                  {tutor.user?.faculty && (
+                    <p style={{ color: '#8E8E93', fontSize: '14px', marginBottom: '8px' }}>
+                      {tutor.user.faculty}
+                      {tutor.user?.university && ` · ${tutor.user.university}`}
+                    </p>
+                  )}
+                  {tutor.averageRating > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '2px' }}>
+                        {renderStars(tutor.averageRating)}
+                      </div>
+                      <span style={{ color: '#FFB800', fontWeight: '700', fontSize: '14px' }}>
+                        {tutor.averageRating}
+                      </span>
+                      <span style={{ color: '#636366', fontSize: '13px' }}>
+                        ({tutor.reviewCount} recenzija)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Cijena */}
+              <div style={{
+                background: 'rgba(255,255,255,0.08)', borderRadius: '18px', padding: '16px 24px',
+                textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(8px)',
+              }}>
+                <p style={{ color: '#8E8E93', fontSize: '12px', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Cijena
+                </p>
+                <p style={{
+                  fontSize: '32px', fontWeight: '900', lineHeight: 1,
+                  background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                }}>
+                  {tutor.hourlyRate} KM
+                </p>
+                <p style={{ color: '#636366', fontSize: '12px', marginTop: '4px' }}>po satu</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-indigo-600">{tutor.hourlyRate} KM/h</p>
-            </div>
-          </div>
-
-          {tutor.bio && (
-            <p className="text-gray-600 mb-4">{tutor.bio}</p>
-          )}
-
-          {/* Predmeti */}
-          <div className="mb-4">
-            <p className="text-sm font-medium text-gray-600 mb-2">Predmeti:</p>
-            <div className="flex flex-wrap gap-2">
-              {tutor.subjects?.map((subject, i) => (
-                <span key={i} className="bg-indigo-50 text-indigo-600 text-sm px-3 py-1 rounded-full">
-                  {subject}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Akcije */}
-          {!isOwnProfile && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBookingForm(!showBookingForm)}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg transition"
-              >
-                {showBookingForm ? 'Odustani' : 'Rezerviši termin'}
-              </button>
-              <button
-                onClick={() => setShowReviewForm(!showReviewForm)}
-                className="border border-indigo-200 text-indigo-600 px-4 py-2.5 rounded-lg hover:bg-indigo-50 transition"
-              >
-                Ostavi recenziju
-              </button>
-            </div>
-          )}
+          </AnimatedBlur>
         </div>
+      </div>
 
-        {/* Booking forma */}
-        {showBookingForm && (
-          <div className="bg-white rounded-2xl border border-indigo-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Rezerviši termin</h2>
+      {/* Content */}
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '28px 32px' }}>
 
-            {bookingError && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
-                {bookingError}
-              </div>
-            )}
-
-            <form onSubmit={handleBooking} className="space-y-4">
+        {/* Success poruka */}
+        {bookingSuccess && (
+          <AnimatedScale>
+            <div style={{
+              padding: '16px 20px', borderRadius: '16px', marginBottom: '20px',
+              background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.3)',
+              display: 'flex', alignItems: 'center', gap: '12px', color: '#16A34A',
+            }}>
+              <span style={{ fontSize: '20px' }}>✅</span>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">Predmet *</label>
-                <input
-                  value={bookingData.subject}
-                  onChange={e => setBookingData({ ...bookingData, subject: e.target.value })}
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  placeholder="npr. Matematička analiza"
-                />
+                <p style={{ fontWeight: '800', fontSize: '14px', marginBottom: '2px' }}>Termin uspješno rezervisan!</p>
+                <p style={{ fontSize: '13px', opacity: 0.8 }}>Tutor će potvrditi tvoj termin u najkraćem roku.</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Datum i vrijeme *</label>
-                  <input
-                    type="datetime-local"
-                    value={bookingData.date}
-                    onChange={e => setBookingData({ ...bookingData, date: e.target.value })}
-                    required
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600 mb-1 block">Trajanje</label>
-                  <select
-                    value={bookingData.duration}
-                    onChange={e => setBookingData({ ...bookingData, duration: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                  >
-                    <option value="30">30 minuta</option>
-                    <option value="60">1 sat</option>
-                    <option value="90">1.5 sat</option>
-                    <option value="120">2 sata</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Poruka tutoru</label>
-                <textarea
-                  value={bookingData.message}
-                  onChange={e => setBookingData({ ...bookingData, message: e.target.value })}
-                  rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
-                  placeholder="Opiši šta ti treba pomoć..."
-                />
-              </div>
-
-              {/* Cijena kalkulacija */}
-              <div className="bg-indigo-50 rounded-lg p-3 flex items-center justify-between">
-                <span className="text-sm text-indigo-600">Ukupna cijena:</span>
-                <span className="font-bold text-indigo-600">{calculatePrice()} KM</span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={bookingLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg transition disabled:opacity-50"
-              >
-                {bookingLoading ? 'Rezervisanje...' : 'Potvrdi rezervaciju'}
-              </button>
-            </form>
-          </div>
+            </div>
+          </AnimatedScale>
         )}
 
-        {/* Review forma */}
-        {showReviewForm && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Ostavi recenziju</h2>
-            <form onSubmit={handleReview} className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-600 mb-2 block">Ocjena</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewData({ ...reviewData, rating: star })}
-                      className={`text-3xl ${star <= reviewData.rating ? 'text-yellow-400' : 'text-gray-200'}`}
-                    >
-                      ★
-                    </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
+
+          {/* Lijeva kolona */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Bio */}
+            {tutor.bio && (
+              <AnimatedSection delay={0.05} direction="up">
+                <div style={{
+                  background: '#EEEBE5', borderRadius: '20px', padding: '22px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                }}>
+                  <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '15px', marginBottom: '12px' }}>
+                    O tutoru
+                  </h3>
+                  <p style={{ color: '#3A3A3C', fontSize: '14px', lineHeight: '1.65' }}>
+                    {tutor.bio}
+                  </p>
+                </div>
+              </AnimatedSection>
+            )}
+
+            {/* Predmeti */}
+            <AnimatedSection delay={0.1} direction="up">
+              <div style={{
+                background: '#EEEBE5', borderRadius: '20px', padding: '22px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+              }}>
+                <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '15px', marginBottom: '14px' }}>
+                  📚 Predmeti
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {tutor.subjects?.map((subject, i) => (
+                    <span key={i} style={{
+                      padding: '7px 14px', borderRadius: '100px',
+                      background: 'rgba(255,107,53,0.1)', color: '#FF6B35',
+                      fontSize: '13px', fontWeight: '700',
+                      border: '1px solid rgba(255,107,53,0.2)',
+                    }}>
+                      {subject}
+                    </span>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Komentar</label>
-                <textarea
-                  value={reviewData.comment}
-                  onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
-                  rows={3}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
-                  placeholder="Kako bi opisao instruktora?"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg transition"
-              >
-                Objavi recenziju
-              </button>
-            </form>
-          </div>
-        )}
+            </AnimatedSection>
 
-        {/* Recenzije */}
-        {tutor.reviews?.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Recenzije ({tutor.reviews.length})
-            </h2>
-            <div className="space-y-3">
-              {tutor.reviews.map(review => (
-                <div key={review.id} className="border border-gray-100 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex">{renderStars(review.rating)}</div>
-                    <span className="text-xs text-gray-400">
-                      {new Date(review.createdAt).toLocaleDateString('bs-BA')}
-                    </span>
-                  </div>
-                  {review.comment && (
-                    <p className="text-sm text-gray-600">{review.comment}</p>
+            {/* Booking forma */}
+            {showBookingForm && (
+              <AnimatedScale delay={0}>
+                <div style={{
+                  background: '#EEEBE5', borderRadius: '20px', padding: '24px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                  border: '2px solid rgba(255,107,53,0.25)',
+                }}>
+                  <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '17px', marginBottom: '20px' }}>
+                    📅 Rezerviši termin
+                  </h3>
+
+                  {bookingError && (
+                    <div style={{
+                      padding: '12px 16px', borderRadius: '12px', marginBottom: '16px',
+                      background: 'rgba(255,59,48,0.1)', color: '#FF3B30',
+                      fontSize: '13px', border: '1px solid rgba(255,59,48,0.2)',
+                    }}>
+                      ⚠️ {bookingError}
+                    </div>
                   )}
+
+                  <form onSubmit={handleBooking} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '7px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Predmet *
+                      </label>
+                      <input
+                        value={bookingData.subject}
+                        onChange={e => setBookingData({ ...bookingData, subject: e.target.value })}
+                        required
+                        style={inputStyle}
+                        placeholder="npr. Matematička analiza"
+                        onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                        onBlur={e => e.target.style.borderColor = '#D8D4CC'}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '7px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Datum i vrijeme *
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={bookingData.date}
+                          onChange={e => setBookingData({ ...bookingData, date: e.target.value })}
+                          required
+                          style={inputStyle}
+                          onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                          onBlur={e => e.target.style.borderColor = '#D8D4CC'}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '7px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Trajanje
+                        </label>
+                        <select
+                          value={bookingData.duration}
+                          onChange={e => setBookingData({ ...bookingData, duration: e.target.value })}
+                          style={{ ...inputStyle, cursor: 'pointer' }}
+                          onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                          onBlur={e => e.target.style.borderColor = '#D8D4CC'}
+                        >
+                          <option value="30">30 minuta</option>
+                          <option value="60">1 sat</option>
+                          <option value="90">1.5 sat</option>
+                          <option value="120">2 sata</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '7px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Poruka tutoru
+                      </label>
+                      <textarea
+                        value={bookingData.message}
+                        onChange={e => setBookingData({ ...bookingData, message: e.target.value })}
+                        rows={3}
+                        style={{ ...inputStyle, resize: 'none' }}
+                        placeholder="Opiši šta ti treba pomoć..."
+                        onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                        onBlur={e => e.target.style.borderColor = '#D8D4CC'}
+                      />
+                    </div>
+
+                    {/* Cijena kalkulacija */}
+                    <div style={{
+                      padding: '14px 18px', borderRadius: '14px',
+                      background: 'rgba(255,107,53,0.08)',
+                      border: '1px solid rgba(255,107,53,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <div>
+                        <p style={{ color: '#FF6B35', fontSize: '12px', fontWeight: '600', marginBottom: '2px' }}>
+                          Ukupna cijena
+                        </p>
+                        <p style={{ color: '#7A7570', fontSize: '12px' }}>
+                          {tutor.hourlyRate} KM/h × {bookingData.duration} min
+                        </p>
+                      </div>
+                      <p style={{ fontSize: '24px', fontWeight: '900', color: '#FF6B35' }}>
+                        {calculatePrice()} KM
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={bookingLoading}
+                      style={{
+                        padding: '13px', borderRadius: '14px', border: 'none',
+                        background: bookingLoading ? '#D8D4CC' : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                        color: bookingLoading ? '#9A9690' : 'white',
+                        fontSize: '14px', fontWeight: '800',
+                        cursor: bookingLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        boxShadow: bookingLoading ? 'none' : '0 4px 16px rgba(255,107,53,0.3)',
+                      }}>
+                      {bookingLoading ? (
+                        <>
+                          <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                          Rezervisanje...
+                        </>
+                      ) : '✓ Potvrdi rezervaciju'}
+                    </button>
+                  </form>
                 </div>
-              ))}
-            </div>
+              </AnimatedScale>
+            )}
+
+            {/* Review forma */}
+            {showReviewForm && (
+              <AnimatedScale delay={0}>
+                <div style={{
+                  background: '#EEEBE5', borderRadius: '20px', padding: '24px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                  border: '2px solid rgba(255,184,0,0.25)',
+                }}>
+                  <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '17px', marginBottom: '20px' }}>
+                    ⭐ Ostavi recenziju
+                  </h3>
+                  <form onSubmit={handleReview} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '10px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Ocjena
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {renderStars(reviewData.rating, true, (rating) => setReviewData({ ...reviewData, rating }))}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '7px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Komentar
+                      </label>
+                      <textarea
+                        value={reviewData.comment}
+                        onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
+                        rows={3}
+                        style={{ ...inputStyle, resize: 'none' }}
+                        placeholder="Kako bi opisao/la ovog instruktora?"
+                        onFocus={e => e.target.style.borderColor = '#FFB800'}
+                        onBlur={e => e.target.style.borderColor = '#D8D4CC'}
+                      />
+                    </div>
+                    <button type="submit" style={{
+                      padding: '13px', borderRadius: '14px', border: 'none',
+                      background: 'linear-gradient(135deg, #FFB800, #FF6B35)',
+                      color: 'white', fontSize: '14px', fontWeight: '800', cursor: 'pointer',
+                      boxShadow: '0 4px 16px rgba(255,184,0,0.3)',
+                    }}>
+                      ⭐ Objavi recenziju
+                    </button>
+                  </form>
+                </div>
+              </AnimatedScale>
+            )}
+
+            {/* Recenzije */}
+            {tutor.reviews?.length > 0 && (
+              <AnimatedSection delay={0.15} direction="up">
+                <div style={{
+                  background: '#EEEBE5', borderRadius: '20px', padding: '22px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                }}>
+                  <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '15px', marginBottom: '16px' }}>
+                    ⭐ Recenzije ({tutor.reviews.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {tutor.reviews.map((review, i) => (
+                      <AnimatedSection key={review.id} delay={i * 0.05} direction="up">
+                        <div style={{
+                          background: '#F5F2ED', borderRadius: '14px', padding: '16px',
+                          border: '1px solid rgba(0,0,0,0.04)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                              {renderStars(review.rating)}
+                            </div>
+                            <span style={{ fontSize: '12px', color: '#AEAEB2' }}>
+                              {new Date(review.createdAt).toLocaleDateString('bs-BA')}
+                            </span>
+                          </div>
+                          {review.comment && (
+                            <p style={{ fontSize: '13px', color: '#3A3A3C', lineHeight: '1.5' }}>
+                              {review.comment}
+                            </p>
+                          )}
+                          {review.student && (
+                            <p style={{ fontSize: '12px', color: '#AEAEB2', marginTop: '8px' }}>
+                              — {review.student.firstName} {review.student.lastName}
+                            </p>
+                          )}
+                        </div>
+                      </AnimatedSection>
+                    ))}
+                  </div>
+                </div>
+              </AnimatedSection>
+            )}
           </div>
-        )}
+
+          {/* Desna kolona – Akcije */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* Statistike */}
+            <AnimatedScale delay={0.05}>
+              <div style={{
+                background: '#EEEBE5', borderRadius: '20px', padding: '20px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+              }}>
+                <p style={{ fontSize: '11px', fontWeight: '700', color: '#AEAEB2', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
+                  Statistike
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[
+                    { icon: '⭐', label: 'Prosječna ocjena', value: tutor.averageRating > 0 ? tutor.averageRating : '—' },
+                    { icon: '💬', label: 'Recenzije', value: tutor.reviewCount || 0 },
+                    { icon: '📚', label: 'Predmeta', value: tutor.subjects?.length || 0 },
+                    { icon: '💰', label: 'Cijena', value: `${tutor.hourlyRate} KM/h` },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', color: '#6B7280' }}>{s.icon} {s.label}</span>
+                      <span style={{
+                        fontWeight: '800', fontSize: '13px', padding: '2px 10px',
+                        borderRadius: '100px', background: '#FFF7ED', color: '#FF6B35',
+                      }}>
+                        {s.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </AnimatedScale>
+
+            {/* Akcije dugmad */}
+            {!isOwnProfile && (
+              <AnimatedScale delay={0.1}>
+                <div style={{
+                  background: '#EEEBE5', borderRadius: '20px', padding: '20px',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                  border: '1px solid rgba(0,0,0,0.05)',
+                  display: 'flex', flexDirection: 'column', gap: '10px',
+                }}>
+                  <button
+                    onClick={() => { setShowBookingForm(!showBookingForm); setShowReviewForm(false) }}
+                    style={{
+                      padding: '13px', borderRadius: '14px', border: 'none',
+                      background: showBookingForm
+                        ? '#D8D4CC'
+                        : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                      color: showBookingForm ? '#6B7280' : 'white',
+                      fontSize: '14px', fontWeight: '800', cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: showBookingForm ? 'none' : '0 4px 16px rgba(255,107,53,0.3)',
+                    }}>
+                    {showBookingForm ? '✕ Odustani' : '📅 Rezerviši termin'}
+                  </button>
+
+                  <button
+                    onClick={() => { setShowReviewForm(!showReviewForm); setShowBookingForm(false) }}
+                    style={{
+                      padding: '13px', borderRadius: '14px', border: 'none',
+                      background: showReviewForm ? '#D8D4CC' : '#F5F2ED',
+                      color: showReviewForm ? '#6B7280' : '#FF6B35',
+                      fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      border: `1.5px solid ${showReviewForm ? 'transparent' : 'rgba(255,107,53,0.2)'}`,
+                    }}>
+                    {showReviewForm ? '✕ Odustani' : '⭐ Ostavi recenziju'}
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/chat/${tutor.user?.id}`)}
+                    style={{
+                      padding: '13px', borderRadius: '14px', border: 'none',
+                      background: '#F5F2ED', color: '#1C1C1E',
+                      fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                      border: '1.5px solid rgba(0,0,0,0.08)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Pošalji poruku
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/profile/${tutor.user?.id}`)}
+                    style={{
+                      padding: '13px', borderRadius: '14px', border: 'none',
+                      background: '#F5F2ED', color: '#6B7280',
+                      fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                      border: '1.5px solid rgba(0,0,0,0.06)',
+                    }}>
+                    👤 Pogledaj profil
+                  </button>
+                </div>
+              </AnimatedScale>
+            )}
+
+            {/* Info za dostupnost */}
+            <AnimatedScale delay={0.15}>
+              <div style={{
+                background: 'rgba(255,107,53,0.06)', borderRadius: '16px', padding: '16px',
+                border: '1px solid rgba(255,107,53,0.15)',
+              }}>
+                <p style={{ fontSize: '12px', color: '#FF6B35', fontWeight: '700', marginBottom: '6px' }}>
+                  💡 Kako funkcionira?
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    '1. Rezerviši termin',
+                    '2. Tutor potvrđuje',
+                    '3. Dobij email potvrdu',
+                    '4. Pohađaj instrukcije',
+                  ].map((step, i) => (
+                    <p key={i} style={{ fontSize: '12px', color: '#7A7570', lineHeight: '1.4' }}>
+                      {step}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </AnimatedScale>
+          </div>
+        </div>
       </div>
     </div>
   )

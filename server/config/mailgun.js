@@ -76,25 +76,27 @@ const emailTemplate = (content) => `
 
 const sendEmail = async (to, subject, html) => {
   try {
-    // Dok nema verifikovanog domaina, sve šalji na tvoj email
-    const OWNER_EMAIL = process.env.RESEND_TEST_EMAIL || 'bekirnokic633@gmail.com'
-    const actualTo = process.env.NODE_ENV === 'production' ? to : OWNER_EMAIL
+    const OWNER_EMAIL = process.env.RESEND_TEST_EMAIL
+    const isDev = process.env.NODE_ENV !== 'production'
+    const actualTo = isDev ? OWNER_EMAIL : to
+
+    const finalSubject = isDev && to !== OWNER_EMAIL
+      ? `[TEST → ${to}] ${subject}`
+      : subject
 
     const result = await resend.emails.send({
       from: FROM,
       to: [actualTo],
-      subject: actualTo !== to
-        ? `[Za: ${to}] ${subject}`  // Dodaj originalnog primaoca u subject
-        : subject,
+      subject: finalSubject,
       html,
     })
 
     if (result.error) {
       console.error('Resend greška:', result.error)
-    } else {
-      console.log(`Email poslan na ${actualTo} (originalni: ${to})`)
+      throw new Error(result.error.message)
     }
 
+    console.log(`✉️  Email poslan: ${actualTo} | Subject: ${finalSubject}`)
     return result
   } catch (err) {
     console.error('Resend greška:', err)

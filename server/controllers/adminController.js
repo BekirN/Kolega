@@ -323,21 +323,36 @@ const getAllContent = async (req, res) => {
 // Dohvati pending verifikacije
 const getPendingVerifications = async (req, res) => {
   try {
+    console.log('=== getPendingVerifications ===')
+
+    // Provjeri sve korisnike i njihove statuse
+    const allUsers = await prisma.user.findMany({
+      select: { id: true, firstName: true, verificationStatus: true, indexImage: true }
+    })
+    console.log('Svi korisnici statusi:', allUsers.map(u => ({
+      name: u.firstName,
+      status: u.verificationStatus,
+      hasIndex: !!u.indexImage
+    })))
+
     const users = await prisma.user.findMany({
       where: { verificationStatus: 'PENDING' },
       select: {
         id: true, firstName: true, lastName: true,
         email: true, faculty: true, university: true,
         indexImage: true, createdAt: true, profileImage: true,
+        verificationStatus: true, verificationNote: true,
       },
       orderBy: { createdAt: 'asc' }
     })
+
+    console.log('PENDING korisnici:', users.length, users)
     res.json(users)
   } catch (error) {
+    console.error('getPendingVerifications GREŠKA:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
-
 // Odobri ili odbij verifikaciju
 const reviewVerification = async (req, res) => {
   try {

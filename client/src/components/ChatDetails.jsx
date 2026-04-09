@@ -10,7 +10,6 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
   const [loading, setLoading] = useState(true)
 
   const isGroup = conversation?.isGroup
-  const isAdmin = conversation?.adminId === currentUser?.id
   const otherParticipant = !isGroup
     ? conversation?.participants?.find(p => p.user?.id !== currentUser?.id)?.user
     : null
@@ -47,53 +46,103 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
   if (!conversation) return null
 
   return (
-    <div className="w-80 bg-white border-l border-gray-100 flex flex-col h-full overflow-hidden flex-shrink-0">
+    <div style={{
+      width: '300px', flexShrink: 0,
+      background: '#FDFCF9',
+      borderLeft: '1px solid rgba(0,0,0,0.06)',
+      display: 'flex', flexDirection: 'column',
+      height: '100%', overflow: 'hidden',
+    }}>
+
       {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-        <h3 className="font-semibold text-gray-800">Detalji</h3>
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '15px' }}>
+          Detalji
+        </h3>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100"
+          style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: '#EEEBE5', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#6B7280', fontSize: '14px', transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#E2DDD6'}
+          onMouseLeave={e => e.currentTarget.style.background = '#EEEBE5'}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          ✕
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+
         {/* Profil info */}
-        <div className="p-6 text-center border-b border-gray-100">
+        <div style={{
+          padding: '24px 20px',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          textAlign: 'center',
+        }}>
           {isGroup ? (
             <>
-              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '20px',
+                background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '32px', margin: '0 auto 12px',
+                boxShadow: '0 4px 16px rgba(255,107,53,0.25)',
+              }}>
                 👥
               </div>
-              <h2 className="font-bold text-gray-800 text-lg">{conversation.name}</h2>
-              <p className="text-sm text-gray-400 mt-1">
+              <h2 style={{ fontWeight: '900', color: '#1C1C1E', fontSize: '17px', marginBottom: '4px' }}>
+                {conversation.name}
+              </h2>
+              <p style={{ fontSize: '13px', color: '#8E8E93' }}>
                 {conversation.participants?.length} članova
               </p>
             </>
           ) : (
             <>
-              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-3">
+              <div style={{
+                width: '72px', height: '72px', borderRadius: '20px',
+                overflow: 'hidden', margin: '0 auto 12px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+              }}>
                 {otherParticipant?.profileImage ? (
-                  <img src={otherParticipant.profileImage} alt="" className="w-full h-full object-cover" />
+                  <img src={otherParticipant.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl">
+                  <div style={{
+                    width: '100%', height: '100%',
+                    background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontWeight: '900', fontSize: '24px',
+                  }}>
                     {otherParticipant?.firstName?.[0]}{otherParticipant?.lastName?.[0]}
                   </div>
                 )}
               </div>
-              <h2 className="font-bold text-gray-800 text-lg">
+              <h2 style={{ fontWeight: '900', color: '#1C1C1E', fontSize: '17px', marginBottom: '4px' }}>
                 {otherParticipant?.firstName} {otherParticipant?.lastName}
               </h2>
               {otherParticipant?.faculty && (
-                <p className="text-sm text-gray-400 mt-1">{otherParticipant.faculty}</p>
+                <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '12px' }}>
+                  {otherParticipant.faculty}
+                </p>
               )}
               <button
                 onClick={() => navigate(`/profile/${otherParticipant?.id}`)}
-                className="mt-3 text-sm text-indigo-500 hover:text-indigo-700 transition"
+                style={{
+                  padding: '8px 18px', borderRadius: '100px', border: 'none',
+                  background: '#FFF7ED', color: '#FF6B35',
+                  fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                  transition: 'opacity 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               >
                 Pogledaj profil →
               </button>
@@ -103,36 +152,60 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
 
         {/* Članovi grupe */}
         {isGroup && (
-          <div className="px-4 py-4 border-b border-gray-100">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Članovi
-            </h4>
-            <div className="space-y-2">
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+          }}>
+            <p style={{
+              fontSize: '11px', fontWeight: '700', color: '#AEAEB2',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px',
+            }}>
+              Članovi ({conversation.participants?.length})
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {conversation.participants?.map(p => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-1.5 transition"
                   onClick={() => navigate(`/profile/${p.user?.id}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '8px 10px', borderRadius: '12px',
+                    cursor: 'pointer', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#EEEBE5'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                     {p.user?.profileImage ? (
-                      <img src={p.user.profileImage} alt="" className="w-full h-full object-cover" />
+                      <img src={p.user.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold">
+                      <div style={{
+                        width: '100%', height: '100%',
+                        background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: '12px', fontWeight: '700',
+                      }}>
                         {p.user?.firstName?.[0]}{p.user?.lastName?.[0]}
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#1C1C1E', marginBottom: '1px' }}>
                       {p.user?.firstName} {p.user?.lastName}
+                      {p.user?.id === currentUser?.id && (
+                        <span style={{ color: '#AEAEB2', fontWeight: '400' }}> (ti)</span>
+                      )}
                     </p>
                     {p.user?.faculty && (
-                      <p className="text-xs text-gray-400 truncate">{p.user.faculty}</p>
+                      <p style={{ fontSize: '11px', color: '#AEAEB2' }}>{p.user.faculty}</p>
                     )}
                   </div>
                   {conversation.adminId === p.user?.id && (
-                    <span className="text-xs bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded flex-shrink-0">
+                    <span style={{
+                      fontSize: '10px', fontWeight: '700', padding: '2px 8px',
+                      borderRadius: '100px',
+                      background: 'rgba(255,107,53,0.1)', color: '#FF6B35',
+                    }}>
                       Admin
                     </span>
                   )}
@@ -143,56 +216,73 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
         )}
 
         {/* Media tabovi */}
-        <div className="px-4 py-4">
-          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+        <div style={{ padding: '16px 20px' }}>
+          <p style={{
+            fontSize: '11px', fontWeight: '700', color: '#AEAEB2',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px',
+          }}>
             Dijeljeni sadržaj
-          </h4>
+          </p>
 
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setMediaTab('slike')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${
-                mediaTab === 'slike'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              Slike ({media.length})
-            </button>
-            <button
-              onClick={() => setMediaTab('fajlovi')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${
-                mediaTab === 'fajlovi'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              Fajlovi ({files.length})
-            </button>
+          {/* Tab switcher */}
+          <div style={{
+            display: 'flex', gap: '6px', marginBottom: '14px',
+            background: '#EEEBE5', padding: '4px', borderRadius: '12px',
+          }}>
+            {[
+              { id: 'slike', label: `🖼️ Slike (${media.length})` },
+              { id: 'fajlovi', label: `📎 Fajlovi (${files.length})` },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setMediaTab(tab.id)}
+                style={{
+                  flex: 1, padding: '7px', borderRadius: '9px', border: 'none',
+                  background: mediaTab === tab.id ? '#FDFCF9' : 'transparent',
+                  color: mediaTab === tab.id ? '#1C1C1E' : '#8E8E93',
+                  fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                  boxShadow: mediaTab === tab.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s',
+                }}>
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {loading ? (
-            <div className="text-center py-6 text-gray-400 text-sm">Učitavanje...</div>
+            <div style={{ textAlign: 'center', padding: '24px', color: '#AEAEB2', fontSize: '13px' }}>
+              <div style={{
+                width: '20px', height: '20px', borderRadius: '50%',
+                border: '2px solid #FF6B35', borderTopColor: 'transparent',
+                animation: 'spin 0.8s linear infinite', margin: '0 auto 8px',
+              }} />
+              Učitavanje...
+            </div>
           ) : mediaTab === 'slike' ? (
             media.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-3xl mb-2">🖼️</p>
-                <p className="text-gray-400 text-sm">Nema dijeljenih slika</p>
+              <div style={{ textAlign: 'center', padding: '24px' }}>
+                <p style={{ fontSize: '28px', marginBottom: '8px' }}>🖼️</p>
+                <p style={{ color: '#AEAEB2', fontSize: '13px' }}>Nema dijeljenih slika</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-1">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
                 {media.map(msg => (
                   
                   <a  key={msg.id}
-                  href={msg.fileUrl}
+                    href={msg.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="aspect-square overflow-hidden rounded-lg hover:opacity-80 transition"
+                    style={{
+                      aspectRatio: '1', overflow: 'hidden', borderRadius: '10px',
+                      display: 'block', transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                   >
                     <img
                       src={msg.fileUrl}
                       alt=""
-                      className="w-full h-full object-cover"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </a>
                 ))}
@@ -200,29 +290,50 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
             )
           ) : (
             files.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-3xl mb-2">📎</p>
-                <p className="text-gray-400 text-sm">Nema dijeljenih fajlova</p>
+              <div style={{ textAlign: 'center', padding: '24px' }}>
+                <p style={{ fontSize: '28px', marginBottom: '8px' }}>📎</p>
+                <p style={{ color: '#AEAEB2', fontSize: '13px' }}>Nema dijeljenih fajlova</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {files.map(msg => (
                   
-                  <a  key={msg.id}
+                  <a   key={msg.id}
                     href={msg.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 12px', borderRadius: '12px',
+                      background: '#EEEBE5', textDecoration: 'none',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#E2DDD6'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#EEEBE5'}
                   >
-                    <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg">📄</span>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: '#FFF7ED', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '18px',
+                    }}>
+                      📄
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 font-medium truncate">{msg.content}</p>
-                      <p className="text-xs text-gray-400">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: '13px', fontWeight: '700', color: '#1C1C1E',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        marginBottom: '2px',
+                      }}>
+                        {msg.content}
+                      </p>
+                      <p style={{ fontSize: '11px', color: '#AEAEB2' }}>
                         {msg.sender?.firstName} · {new Date(msg.createdAt).toLocaleDateString('bs-BA')}
                       </p>
                     </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#AEAEB2" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                   </a>
                 ))}
               </div>
@@ -231,20 +342,34 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
         </div>
       </div>
 
-      {/* Footer akcije */}
-      <div className="px-4 py-4 border-t border-gray-100 flex-shrink-0 space-y-2">
-        {isGroup && (
+      {/* Footer */}
+      {isGroup && (
+        <div style={{
+          padding: '12px 16px',
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+          flexShrink: 0,
+        }}>
           <button
             onClick={handleLeaveGroup}
-            className="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition border border-red-100"
+            style={{
+              width: '100%', padding: '10px', borderRadius: '12px', border: 'none',
+              background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
+              fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,59,48,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,59,48,0.08)'}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Napusti grupu
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

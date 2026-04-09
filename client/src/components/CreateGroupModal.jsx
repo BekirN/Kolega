@@ -54,46 +54,119 @@ export default function CreateGroupModal({ onClose, onCreated }) {
     }
   }
 
+  const inputStyle = {
+    background: '#EEEBE5', border: '1.5px solid #D8D4CC', color: '#1C1C1E',
+    borderRadius: '12px', padding: '11px 14px', fontSize: '14px', width: '100%',
+    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box',
+    fontFamily: 'inherit',
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#FDFCF9', borderRadius: '24px',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
+          width: '100%', maxWidth: '440px',
+          overflow: 'hidden',
+          animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <style>{`
+          @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.92); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+
         {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800 text-lg">Nova grupa</h2>
+        <div style={{
+          padding: '20px 24px',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px',
+            }}>
+              👥
+            </div>
+            <h2 style={{ fontWeight: '900', color: '#1C1C1E', fontSize: '17px' }}>
+              Nova grupa
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: '#EEEBE5', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#6B7280', fontSize: '14px', transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#E2DDD6'}
+            onMouseLeave={e => e.currentTarget.style.background = '#EEEBE5'}
           >
             ✕
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
           {/* Naziv grupe */}
           <div>
-            <label className="text-sm text-gray-600 mb-1.5 block font-medium">Naziv grupe *</label>
+            <label style={{
+              fontSize: '12px', fontWeight: '700', color: '#6B7280',
+              marginBottom: '8px', display: 'block',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              Naziv grupe *
+            </label>
             <input
               value={groupName}
               onChange={e => setGroupName(e.target.value)}
               placeholder="npr. Informatika 3. godina"
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = '#FF6B35'}
+              onBlur={e => e.target.style.borderColor = '#D8D4CC'}
             />
           </div>
 
           {/* Odabrani korisnici */}
           {selectedUsers.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
               {selectedUsers.map(u => (
                 <span
                   key={u.id}
-                  className="flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs px-3 py-1.5 rounded-full"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '5px 10px 5px 12px', borderRadius: '100px',
+                    background: 'rgba(255,107,53,0.12)', color: '#FF6B35',
+                    fontSize: '13px', fontWeight: '700',
+                    border: '1px solid rgba(255,107,53,0.25)',
+                  }}
                 >
                   {u.firstName} {u.lastName}
                   <button
                     onClick={() => toggleUser(u)}
-                    className="text-indigo-400 hover:text-indigo-700"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: '#FF6B35', fontSize: '14px', lineHeight: 1,
+                      padding: '0', opacity: 0.7,
+                    }}
                   >
-                    ✕
+                    ×
                   </button>
                 </span>
               ))}
@@ -102,81 +175,150 @@ export default function CreateGroupModal({ onClose, onCreated }) {
 
           {/* Pretraga */}
           <div>
-            <label className="text-sm text-gray-600 mb-1.5 block font-medium">
-              Dodaj članove * <span className="text-gray-400 font-normal">(min. 2)</span>
+            <label style={{
+              fontSize: '12px', fontWeight: '700', color: '#6B7280',
+              marginBottom: '8px', display: 'block',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              Dodaj članove *
+              <span style={{ color: '#AEAEB2', fontWeight: '400', textTransform: 'none', letterSpacing: 0, marginLeft: '6px', fontSize: '11px' }}>
+                (min. 2)
+              </span>
             </label>
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Pretraži studente..."
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = '#FF6B35'}
+                onBlur={e => e.target.style.borderColor = '#D8D4CC'}
               />
               {searching && (
-                <div className="absolute right-3 top-3">
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
-                </div>
+                <div style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  width: '16px', height: '16px', borderRadius: '50%',
+                  border: '2px solid #FF6B35', borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
               )}
             </div>
 
             {/* Rezultati */}
             {searchResults.length > 0 && (
-              <div className="mt-2 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                {searchResults.map(u => (
-                  <button
-                    key={u.id}
-                    onClick={() => toggleUser(u)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left border-b border-gray-50 last:border-0"
-                  >
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                      {u.profileImage ? (
-                        <img src={u.profileImage} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold">
-                          {u.firstName?.[0]}{u.lastName?.[0]}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 font-medium">
-                        {u.firstName} {u.lastName}
-                      </p>
-                      {u.faculty && (
-                        <p className="text-xs text-gray-400">{u.faculty}</p>
-                      )}
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedUsers.find(s => s.id === u.id)
-                        ? 'bg-indigo-600 border-indigo-600'
-                        : 'border-gray-300'
-                    }`}>
-                      {selectedUsers.find(s => s.id === u.id) && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
-                ))}
+              <div style={{
+                marginTop: '8px', borderRadius: '14px', overflow: 'hidden',
+                border: '1px solid rgba(0,0,0,0.06)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              }}>
+                {searchResults.map((u, i) => {
+                  const isSelected = !!selectedUsers.find(s => s.id === u.id)
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => toggleUser(u)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '10px 14px', textAlign: 'left', border: 'none',
+                        background: isSelected ? 'rgba(255,107,53,0.06)' : '#FDFCF9',
+                        borderBottom: i < searchResults.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                        cursor: 'pointer', transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#EEEBE5' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = isSelected ? 'rgba(255,107,53,0.06)' : '#FDFCF9' }}
+                    >
+                      <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                        {u.profileImage ? (
+                          <img src={u.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{
+                            width: '100%', height: '100%',
+                            background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontSize: '12px', fontWeight: '700',
+                          }}>
+                            {u.firstName?.[0]}{u.lastName?.[0]}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: '700', color: '#1C1C1E' }}>
+                          {u.firstName} {u.lastName}
+                        </p>
+                        {u.faculty && (
+                          <p style={{ fontSize: '12px', color: '#AEAEB2' }}>{u.faculty}</p>
+                        )}
+                      </div>
+                      <div style={{
+                        width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
+                        border: `2px solid ${isSelected ? '#FF6B35' : '#D8D4CC'}`,
+                        background: isSelected ? '#FF6B35' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}>
+                        {isSelected && (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+        <div style={{
+          padding: '16px 24px',
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+          display: 'flex', gap: '10px',
+        }}>
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition"
+            style={{
+              flex: 1, padding: '12px', borderRadius: '14px', border: 'none',
+              background: '#EEEBE5', color: '#6B7280',
+              fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
             Odustani
           </button>
           <button
             onClick={handleCreate}
             disabled={!groupName.trim() || selectedUsers.length < 2 || loading}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm transition disabled:opacity-40"
-          >
-            {loading ? 'Kreiranje...' : `Kreiraj grupu (${selectedUsers.length})`}
+            style={{
+              flex: 2, padding: '12px', borderRadius: '14px', border: 'none',
+              background: !groupName.trim() || selectedUsers.length < 2 || loading
+                ? '#D8D4CC'
+                : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+              color: !groupName.trim() || selectedUsers.length < 2 || loading
+                ? '#AEAEB2' : 'white',
+              fontSize: '14px', fontWeight: '800',
+              cursor: !groupName.trim() || selectedUsers.length < 2 || loading
+                ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              boxShadow: groupName.trim() && selectedUsers.length >= 2 && !loading
+                ? '0 4px 16px rgba(255,107,53,0.3)' : 'none',
+              transition: 'all 0.2s',
+            }}>
+            {loading ? (
+              <>
+                <div style={{
+                  width: '14px', height: '14px', borderRadius: '50%',
+                  border: '2px solid white', borderTopColor: 'transparent',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+                Kreiranje...
+              </>
+            ) : (
+              `👥 Kreiraj grupu${selectedUsers.length >= 2 ? ` (${selectedUsers.length})` : ''}`
+            )}
           </button>
         </div>
       </div>
