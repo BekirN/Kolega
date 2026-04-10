@@ -203,42 +203,99 @@ const sendBroadcastEmail = async (req, res) => {
       select: { email: true, firstName: true }
     })
 
-    const { sendVerificationEmail } = require('../config/mailgun')
+    console.log(`Broadcast: šaljem na ${users.length} korisnika`)
+
+    // Koristi sendEmail iz mailgun.js koji je zapravo Resend
+    const { Resend } = require('resend')
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
+    const OWNER_EMAIL = process.env.RESEND_TEST_EMAIL
+    const isDev = process.env.NODE_ENV !== 'production'
 
     let sent = 0
     let failed = 0
 
-    const batchSize = 10
+    const batchSize = 5
     for (let i = 0; i < users.length; i += batchSize) {
       const batch = users.slice(i, i + batchSize)
       const results = await Promise.allSettled(
         batch.map(u => {
+          const actualTo = isDev ? OWNER_EMAIL : u.email
+          const finalSubject = isDev && u.email !== OWNER_EMAIL
+            ? `[TEST → ${u.email}] ${subject}`
+            : subject
+
           const html = `
-            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;">
-              <div style="background:linear-gradient(135deg,#FF6B35,#FFB800);padding:20px;border-radius:16px 16px 0 0;">
-                <h1 style="color:white;margin:0;font-size:20px;">KOLEGA Admin</h1>
-              </div>
-              <div style="background:#EEEBE5;padding:32px;border-radius:0 0 16px 16px;">
-                <p style="color:#1C1C1E;font-size:15px;">Zdravo <strong>${u.firstName}</strong>!</p>
-                <div style="color:#3A3A3C;font-size:14px;line-height:1.6;white-space:pre-wrap;">${message}</div>
-                <hr style="border:none;border-top:1px solid #D8D4CC;margin:24px 0;">
-                <p style="color:#9A9690;font-size:12px;margin:0;">KOLEGA Student Hub · Sarajevo</p>
-              </div>
-            </div>
+            <!DOCTYPE html>
+            <html>
+            <body style="margin:0;padding:0;background:#E2DDD6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#E2DDD6;padding:40px 20px;">
+                <tr>
+                  <td align="center">
+                    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+                      <tr>
+                        <td style="padding:0 0 24px 0;" align="center">
+                          <table cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="background:linear-gradient(135deg,#FF6B35,#FFB800);border-radius:16px;text-align:center;vertical-align:middle;font-size:24px;font-weight:900;color:white;padding:8px 18px;">K</td>
+                              <td style="padding-left:12px;">
+                                <div style="font-size:22px;font-weight:900;color:#1C1C1E;">KOLEGA</div>
+                                <div style="font-size:12px;color:#FF6B35;font-weight:600;">Student Hub · Sarajevo</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="background:#EEEBE5;border-radius:24px;padding:40px;border:1px solid rgba(0,0,0,0.06);">
+                          <h1 style="font-size:24px;font-weight:900;color:#1C1C1E;margin:0 0 16px 0;">
+                            Zdravo ${u.firstName}! 👋
+                          </h1>
+                          <div style="color:#3A3A3C;font-size:15px;line-height:1.7;white-space:pre-wrap;">${message}</div>
+                          <hr style="border:none;border-top:1px solid #D8D4CC;margin:28px 0;">
+                          <p style="color:#9A9690;font-size:12px;margin:0;">KOLEGA Student Hub · Sarajevo, Bosna i Hercegovina</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
           `
+
           return resend.emails.send({
-            from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
-            to: [process.env.NODE_ENV === 'production' ? u.email : process.env.RESEND_TEST_EMAIL],
-            subject,
+            from: 'KOLEGA <onboarding@resend.dev>',
+            to: [actualTo],
+            subject: finalSubject,
             html,
           })
         })
       )
-      results.forEach(r => r.status === 'fulfilled' ? sent++ : failed++)
+
+      results.forEach((r, idx) => {
+        if (r.status === 'fulfilled') {
+          sent++
+          console.log(`✉️ Poslan email ${i + idx + 1}/${users.length}`)
+        } else {
+          failed++
+          console.error(`❌ Greška email ${i + idx + 1}:`, r.reason)
+        }
+      })
+
+      // Pauza između batch-eva da ne prekoračimo rate limit
+      if (i + batchSize < users.length) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
 
-    res.json({ message: `Email poslan! Uspješno: ${sent}, Neuspješno: ${failed}`, sent, failed })
+    res.json({
+      message: `Email poslan! ✉️ Uspješno: ${sent}, Neuspješno: ${failed}`,
+      sent,
+      failed,
+    })
   } catch (error) {
+    console.error('sendBroadcastEmail greška:', error)
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
@@ -298,10 +355,6 @@ const getAllContent = async (req, res) => {
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
       jobs: () => prisma.studentJob.findMany({
-        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
-        orderBy: { createdAt: 'desc' }, take: 50,
-      }),
-      posts: () => prisma.communityPost.findMany({
         include: { author: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
