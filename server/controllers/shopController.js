@@ -1,13 +1,22 @@
 const prisma = require('../prisma/client')
+const multer = require('multer')
+const cloudinary = require('../config/cloudinary')
 
-// Dohvati sve oglase
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true)
+    else cb(new Error('Samo slike su dozvoljene'), false)
+  }
+})
+
+// ─── Dohvati sve oglase ───────────────────────────────────────────
 const getItems = async (req, res) => {
   try {
     const { category, search, minPrice, maxPrice } = req.query
 
-    const filters = {
-      isAvailable: true,
-    }
+    const filters = { isAvailable: true }
 
     if (category) filters.category = category
     if (search) {
@@ -16,7 +25,6 @@ const getItems = async (req, res) => {
         { description: { contains: search, mode: 'insensitive' } },
       ]
     }
-
     if (minPrice || maxPrice) {
       filters.price = {}
       if (minPrice) filters.price.gte = parseFloat(minPrice)
@@ -28,10 +36,8 @@ const getItems = async (req, res) => {
       include: {
         seller: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            faculty: true,
+            id: true, firstName: true, lastName: true,
+            faculty: true, profileImage: true,
           }
         }
       },
@@ -40,11 +46,11 @@ const getItems = async (req, res) => {
 
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-// Dohvati jedan oglas
+// ─── Dohvati jedan oglas ──────────────────────────────────────────
 const getItemById = async (req, res) => {
   try {
     const item = await prisma.shopItem.findUnique({
@@ -52,25 +58,21 @@ const getItemById = async (req, res) => {
       include: {
         seller: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            faculty: true,
-            email: true,
+            id: true, firstName: true, lastName: true,
+            faculty: true, email: true, profileImage: true,
           }
         }
       }
     })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
-
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
     res.json(item)
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-// Kreiraj oglas
+// ─── Kreiraj oglas ────────────────────────────────────────────────
 const createItem = async (req, res) => {
   try {
     const { title, description, price, condition, category } = req.body
@@ -79,86 +81,108 @@ const createItem = async (req, res) => {
       return res.status(400).json({ message: 'Sva obavezna polja moraju biti popunjena' })
     }
 
+    // Upload slika na Cloudinary
+    let images = []
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map(file =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: 'kolega/shop', resource_type: 'image' },
+            (error, result) => error ? reject(error) : resolve(result.secure_url)
+          )
+          stream.end(file.buffer)
+        })
+      )
+      images = await Promise.all(uploadPromises)
+    }
+
     const item = await prisma.shopItem.create({
       data: {
         title,
-        description,
+        description: description || null,
         price: parseFloat(price),
         condition,
         category,
+        images,
         sellerId: req.user.userId,
       },
       include: {
         seller: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+            id: true, firstName: true, lastName: true,
+            faculty: true, profileImage: true,
           }
         }
       }
     })
 
-    res.status(201).json({ message: 'Oglas kreiran uspjesno!', item })
+    res.status(201).json({ message: 'Oglas kreiran uspješno!', item })
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    console.error('createItem greška:', error)
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-// Azuriraj oglas
+// ─── Ažuriraj oglas ───────────────────────────────────────────────
 const updateItem = async (req, res) => {
   try {
-    const item = await prisma.shopItem.findUnique({
-      where: { id: req.params.id }
-    })
+    const item = await prisma.shopItem.findUnique({ where: { id: req.params.id } })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
     if (item.sellerId !== req.user.userId) {
       return res.status(403).json({ message: 'Nemate pristup ovom oglasu' })
     }
 
     const updated = await prisma.shopItem.update({
       where: { id: req.params.id },
-      data: req.body
+      data: {
+        ...req.body,
+        price: req.body.price ? parseFloat(req.body.price) : item.price,
+      }
     })
 
-    res.json({ message: 'Oglas azuriran!', item: updated })
+    res.json({ message: 'Oglas ažuriran!', item: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-// Obrisi oglas
+// ─── Obriši oglas ─────────────────────────────────────────────────
 const deleteItem = async (req, res) => {
   try {
-    const item = await prisma.shopItem.findUnique({
-      where: { id: req.params.id }
-    })
+    const item = await prisma.shopItem.findUnique({ where: { id: req.params.id } })
 
-    if (!item) return res.status(404).json({ message: 'Oglas nije pronadjen' })
-    if (item.sellerId !== req.user.userId) {
+    if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
+    if (item.sellerId !== req.user.userId && req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Nemate pristup ovom oglasu' })
     }
 
     await prisma.shopItem.delete({ where: { id: req.params.id } })
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-// Moji oglasi
+// ─── Moji oglasi ──────────────────────────────────────────────────
 const getMyItems = async (req, res) => {
   try {
     const items = await prisma.shopItem.findMany({
       where: { sellerId: req.user.userId },
       orderBy: { createdAt: 'desc' }
     })
-
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greska na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
 }
 
-module.exports = { getItems, getItemById, createItem, updateItem, deleteItem, getMyItems }
+module.exports = {
+  upload,
+  getItems,
+  getItemById,
+  createItem,
+  updateItem,
+  deleteItem,
+  getMyItems,
+}

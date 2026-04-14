@@ -357,7 +357,7 @@ export default function Materials() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 {folders.map(folder => (
                   <div key={folder.id}>
-                    <button
+                    <div
                       onClick={() => setSelectedFolder(selectedFolder?.id === folder.id ? null : folder)}
                       style={{
                         width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
@@ -401,7 +401,7 @@ export default function Materials() {
                           ✕
                         </button>
                       )}
-                    </button>
+                    </div>
 
                     {/* Podfolderi */}
                     {folder.children?.length > 0 && (

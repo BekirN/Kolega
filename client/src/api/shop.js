@@ -12,8 +12,18 @@ export const getShopItemById = async (id) => {
 }
 
 export const createShopItem = async (data) => {
-  const response = await api.post('/shop', data)
-  return response.data
+  const formData = new FormData()
+  Object.entries(data).forEach(([key, val]) => {
+    if (key === 'images') {
+      val.forEach(img => formData.append('images', img))
+    } else if (val !== undefined && val !== null && val !== '') {
+      formData.append(key, val)
+    }
+  })
+  const res = await api.post('/shop', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return res.data
 }
 
 export const updateShopItem = async (id, data) => {

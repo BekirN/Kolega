@@ -54,7 +54,7 @@ export default function Login() {
           </div>
           <div>
             <span className="text-white font-bold text-xl tracking-tight">KOLEGA</span>
-            <p className="text-xs" style={{ color: '#FF6B35' }}>Student Hub · Sarajevo</p>
+            <p className="text-xs" style={{ color: '#FF6B35' }}>Student Hub</p>
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export default function Login() {
             <span style={{ color: '#FF6B35' }}>na jednom mjestu.</span>
           </h2>
           <p style={{ color: '#8E8E93' }} className="text-lg">
-            Stanovi, knjige, instrukcije, prakse – sve bez Viber grupa.
+            Stanovi, knjige, instrukcije, prakse
           </p>
 
           {/* Feature pills */}
@@ -80,7 +80,7 @@ export default function Login() {
         </div>
 
         <p style={{ color: '#48484A' }} className="text-sm relative z-10">
-          © 2025 KOLEGA · Made for students 🎓
+          © 2026 KOLEGA · Made for students 🎓
         </p>
       </div>
 

@@ -178,7 +178,7 @@ export default function Dashboard() {
               {' '}{greetingEmoji}
             </h1>
             <p style={{ color: '#636366', fontSize: '17px' }}>
-              Dobrodošao na KOLEGA · Student Hub Sarajevo
+              Dobrodošao na KOLEGA · Student Hub 
             </p>
           </AnimatedBlur>
         </div>

@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
+const { protect } = require('../middleware/auth')
 const {
+  upload,
   getItems,
   getItemById,
   createItem,
@@ -8,12 +10,11 @@ const {
   deleteItem,
   getMyItems,
 } = require('../controllers/shopController')
-const { protect } = require('../middleware/auth')
 
 router.get('/', getItems)
-router.get('/my-items', protect, getMyItems)
+router.get('/my', protect, getMyItems)
 router.get('/:id', getItemById)
-router.post('/', protect, createItem)
+router.post('/', protect, upload.array('images', 5), createItem)
 router.put('/:id', protect, updateItem)
 router.delete('/:id', protect, deleteItem)
 
