@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useRef, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { getConversations, getOrCreateConversation, getMessages, uploadFile } from '../api/chat'
+import { sendConnectionRequest } from '../api/connections'
 import ChatDetails from '../components/ChatDetails'
 import CreateGroupModal from '../components/CreateGroupModal'
 import { getSocket } from '../services/socket'
@@ -9,6 +10,7 @@ import { saveMaterial } from '../api/materials'
 
 export default function Chat() {
   const { userId } = useParams()
+  const navigate = useNavigate()
   const { unreadConversations, markAsRead, setActiveConversationId } = useNotifications()
 
   const [conversations, setConversations] = useState([])
@@ -24,6 +26,11 @@ export default function Chat() {
   const [savedMessages, setSavedMessages] = useState(new Set())
   const [savingMessage, setSavingMessage] = useState(null)
   const [saveToast, setSaveToast] = useState(null)
+
+  // ─── Chat blocked modal ───────────────────────────────────────
+  const [chatBlocked, setChatBlocked] = useState(null) // { userId, name }
+  const [connectionSent, setConnectionSent] = useState(false)
+  const [connectionLoading, setConnectionLoading] = useState(false)
 
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
@@ -108,6 +115,17 @@ export default function Chat() {
             })
             await openConversation(conv)
           } catch (err) {
+            // ─── Blocked – nisu Kolege ────────────────────────────
+            if (err.response?.data?.code === 'NOT_CONNECTED') {
+              const blockedUser = err.response?.data?.user
+              setChatBlocked({
+                userId,
+                name: blockedUser
+                  ? `${blockedUser.firstName} ${blockedUser.lastName}`
+                  : 'ovog korisnika',
+                profileImage: blockedUser?.profileImage,
+              })
+            }
             console.error(err)
           }
         }
@@ -133,7 +151,6 @@ export default function Chat() {
     }
   }, [])
 
-  // Toast auto-hide
   useEffect(() => {
     if (saveToast) {
       const timer = setTimeout(() => setSaveToast(null), 3000)
@@ -229,16 +246,26 @@ export default function Chat() {
     if (savedMessages.has(msg.id) || savingMessage === msg.id) return
     setSavingMessage(msg.id)
     try {
-      // Kreiramo material objekat iz poruke
       await saveMaterial(msg.id, { source: 'CHAT' })
       setSavedMessages(prev => new Set([...prev, msg.id]))
       setSaveToast({ type: 'success', text: 'Sačuvano u biblioteku! 📚' })
     } catch (err) {
-      // Ako materijal ne postoji u bazi (jer je samo fajl iz chata),
-      // prikazujemo poruku da mogu ručno uploadovati
       setSaveToast({ type: 'info', text: 'Preuzmi fajl i uploaduj ga u svoju biblioteku 📚' })
     } finally {
       setSavingMessage(null)
+    }
+  }
+
+  const handleSendConnectionRequest = async () => {
+    if (!chatBlocked?.userId || connectionSent) return
+    setConnectionLoading(true)
+    try {
+      await sendConnectionRequest(chatBlocked.userId)
+      setConnectionSent(true)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setConnectionLoading(false)
     }
   }
 
@@ -279,6 +306,8 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes scaleIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }`}</style>
+
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar konverzacija ───────────────────────────────── */}
@@ -396,7 +425,103 @@ export default function Chat() {
 
         {/* ── Chat area ─────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {!activeConversation ? (
+
+          {/* ── Chat Blocked screen ───────────────────────────────── */}
+          {chatBlocked && !activeConversation ? (
+            <div className="flex-1 flex items-center justify-center" style={{ background: '#EFEDE8' }}>
+              <div style={{
+                background: '#EEEBE5', borderRadius: '28px', padding: '48px 40px',
+                maxWidth: '420px', width: '100%', textAlign: 'center',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.05)',
+                animation: 'scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+              }}>
+                {/* Avatar */}
+                <div style={{
+                  width: '72px', height: '72px', borderRadius: '20px',
+                  overflow: 'hidden', margin: '0 auto 20px',
+                  background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '28px', fontWeight: '900', color: 'white',
+                }}>
+                  {chatBlocked.profileImage
+                    ? <img src={chatBlocked.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : chatBlocked.name?.[0]
+                  }
+                </div>
+
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '50%',
+                  background: 'rgba(255,59,48,0.1)', margin: '-16px auto 20px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '22px', border: '3px solid #EEEBE5',
+                }}>🔒</div>
+
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1C1C1E', marginBottom: '10px' }}>
+                  Niste još Kolege
+                </h2>
+                <p style={{ fontSize: '14px', color: '#8E8E93', lineHeight: '1.6', marginBottom: '28px' }}>
+                  Da biste chatovali sa <strong style={{ color: '#1C1C1E' }}>{chatBlocked.name}</strong>, morate biti povezani.
+                  Pošaljite zahtjev i kada ga prihvate, moći ćete razgovarati.
+                </p>
+
+                {connectionSent ? (
+                  <div style={{
+                    padding: '14px', borderRadius: '14px',
+                    background: 'rgba(22,163,74,0.1)', color: '#16A34A',
+                    fontSize: '14px', fontWeight: '700', marginBottom: '16px',
+                  }}>
+                    ✓ Zahtjev poslan! Čekajte prihvatanje.
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSendConnectionRequest}
+                    disabled={connectionLoading}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
+                      background: connectionLoading ? '#D8D4CC' : 'linear-gradient(135deg, #FF6B35, #FFB800)',
+                      color: connectionLoading ? '#AEAEB2' : 'white',
+                      fontSize: '15px', fontWeight: '800', cursor: connectionLoading ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      boxShadow: !connectionLoading ? '0 4px 16px rgba(255,107,53,0.3)' : 'none',
+                      marginBottom: '10px',
+                    }}>
+                    {connectionLoading ? (
+                      <>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                        Slanje...
+                      </>
+                    ) : '👋 Pošalji Kolega zahtjev'}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => { setChatBlocked(null); navigate('/chat') }}
+                  style={{
+                    width: '100%', padding: '12px', borderRadius: '14px', border: 'none',
+                    background: '#D8D4CC', color: '#6B7280',
+                    fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                  }}>
+                  Nazad na poruke
+                </button>
+
+                {/* Info box */}
+                <div style={{
+                  marginTop: '20px', padding: '14px', borderRadius: '12px',
+                  background: 'rgba(255,107,53,0.06)', border: '1px solid rgba(255,107,53,0.12)',
+                  textAlign: 'left',
+                }}>
+                  <p style={{ fontSize: '12px', color: '#FF6B35', fontWeight: '700', marginBottom: '6px' }}>
+                    💡 Zašto je ovo potrebno?
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#7A7570', lineHeight: '1.5' }}>
+                    Konekcija štiti privatnost korisnika. Ako ste HR i kandidat je aplicirao na praksu, chat je automatski dozvoljen.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          ) : !activeConversation ? (
             <div className="flex-1 flex items-center justify-center" style={{ background: '#EFEDE8' }}>
               <div className="text-center">
                 <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5"
@@ -437,6 +562,19 @@ export default function Chat() {
                     )
                   )}
                 </div>
+
+                {/* Profil link */}
+                {!activeConversation.isGroup && (
+                  <button
+                    onClick={() => navigate(`/profile/${getOtherParticipant(activeConversation)?.id}`)}
+                    style={{
+                      padding: '8px 14px', borderRadius: '10px', border: 'none',
+                      background: '#FFF7ED', color: '#FF6B35',
+                      fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                    }}>
+                    👤 Profil
+                  </button>
+                )}
 
                 <button
                   onClick={() => setShowDetails(!showDetails)}
@@ -481,8 +619,6 @@ export default function Chat() {
                       return (
                         <div key={msg.id} className="group">
                           <div className={`flex items-end gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
-
-                            {/* Avatar tuđih poruka */}
                             {!isMine && (
                               <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden mb-1"
                                 style={{ visibility: showAvatar ? 'visible' : 'hidden' }}>
@@ -497,14 +633,6 @@ export default function Chat() {
                               </div>
                             )}
 
-                            {/* Save dugme lijevo od mojih poruka */}
-                            {isMine && isFile && (
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mb-1">
-                                <div style={{ width: '28px' }} />
-                              </div>
-                            )}
-
-                            {/* Bubble */}
                             <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-xs lg:max-w-sm`}>
                               {activeConversation.isGroup && !isMine && showAvatar && (
                                 <span className="text-xs font-semibold mb-1 ml-1" style={{ color: '#FF6B35' }}>
@@ -514,96 +642,49 @@ export default function Chat() {
 
                               <div className="px-4 py-2.5"
                                 style={{
-                                  background: isMine
-                                    ? 'linear-gradient(135deg, #FF6B35, #FF8C5A)'
-                                    : '#FDFCF9',
+                                  background: isMine ? 'linear-gradient(135deg, #FF6B35, #FF8C5A)' : '#FDFCF9',
                                   color: isMine ? 'white' : '#1C1C1E',
-                                  borderRadius: isMine
-                                    ? '20px 20px 6px 20px'
-                                    : '20px 20px 20px 6px',
-                                  boxShadow: isMine
-                                    ? '0 2px 8px rgba(255,107,53,0.3)'
-                                    : '0 1px 4px rgba(0,0,0,0.08)',
+                                  borderRadius: isMine ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+                                  boxShadow: isMine ? '0 2px 8px rgba(255,107,53,0.3)' : '0 1px 4px rgba(0,0,0,0.08)',
                                 }}>
-
-                                {/* Slika */}
                                 {msg.fileType === 'image' && msg.fileUrl && (
                                   <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
-                                    <img
-                                      src={msg.fileUrl}
-                                      alt="slika"
-                                      className="rounded-xl max-w-full cursor-pointer hover:opacity-90 transition"
-                                      style={{ maxHeight: '220px', display: 'block' }}
-                                    />
+                                    <img src={msg.fileUrl} alt="slika" className="rounded-xl max-w-full cursor-pointer hover:opacity-90 transition" style={{ maxHeight: '220px', display: 'block' }} />
                                   </a>
                                 )}
-
-                                {/* Fajl */}
                                 {msg.fileType === 'file' && msg.fileUrl && (
-                                  
-                                  <a  href={msg.fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-sm transition hover:opacity-80">
+                                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm transition hover:opacity-80">
                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                      style={{ background: isMine ? 'rgba(255,255,255,0.2)' : '#FFF7ED' }}>
-                                      📎
-                                    </div>
+                                      style={{ background: isMine ? 'rgba(255,255,255,0.2)' : '#FFF7ED' }}>📎</div>
                                     <span className="underline truncate max-w-40"
-                                      style={{ color: isMine ? 'rgba(255,255,255,0.9)' : '#FF6B35' }}>
-                                      {msg.content}
-                                    </span>
+                                      style={{ color: isMine ? 'rgba(255,255,255,0.9)' : '#FF6B35' }}>{msg.content}</span>
                                   </a>
                                 )}
-
-                                {/* Tekst */}
                                 {!msg.fileType && (
                                   <p className="text-sm leading-relaxed">{msg.content}</p>
                                 )}
                               </div>
 
-                              {/* Save dugme ispod fajl/slika poruka koje NISAM ja poslao */}
                               {!isMine && isFile && (
                                 <button
                                   onClick={() => handleSaveToLibrary(msg)}
                                   disabled={isSaved || isSavingThis}
                                   style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    marginTop: '5px',
-                                    marginLeft: '4px',
-                                    padding: '4px 10px',
-                                    borderRadius: '100px',
-                                    border: 'none',
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    marginTop: '5px', marginLeft: '4px',
+                                    padding: '4px 10px', borderRadius: '100px', border: 'none',
                                     cursor: isSaved ? 'default' : 'pointer',
-                                    fontSize: '11px',
-                                    fontWeight: '700',
-                                    background: isSaved
-                                      ? 'rgba(22,163,74,0.12)'
-                                      : 'rgba(255,107,53,0.1)',
+                                    fontSize: '11px', fontWeight: '700',
+                                    background: isSaved ? 'rgba(22,163,74,0.12)' : 'rgba(255,107,53,0.1)',
                                     color: isSaved ? '#16A34A' : '#FF6B35',
-                                    transition: 'all 0.2s',
-                                    opacity: isSavingThis ? 0.6 : 1,
+                                    transition: 'all 0.2s', opacity: isSavingThis ? 0.6 : 1,
                                   }}>
                                   {isSavingThis ? (
-                                    <>
-                                      <div style={{
-                                        width: '10px', height: '10px', borderRadius: '50%',
-                                        border: '1.5px solid #FF6B35', borderTopColor: 'transparent',
-                                        animation: 'spin 0.8s linear infinite',
-                                      }} />
-                                      Čuvam...
-                                    </>
-                                  ) : isSaved ? (
-                                    <>✓ Sačuvano u biblioteku</>
-                                  ) : (
-                                    <>📚 Sačuvaj u biblioteku</>
-                                  )}
+                                    <><div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px solid #FF6B35', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />Čuvam...</>
+                                  ) : isSaved ? <>✓ Sačuvano u biblioteku</> : <>📚 Sačuvaj u biblioteku</>}
                                 </button>
                               )}
 
-                              {/* Vrijeme */}
                               {showTime && (
                                 <span className="text-xs mt-1 mx-1" style={{ color: '#AEAEB2' }}>
                                   {formatTime(msg.createdAt)}
@@ -615,21 +696,15 @@ export default function Chat() {
                       )
                     })}
 
-                    {/* Typing indicator */}
                     {isTyping && (
                       <div className="flex justify-start items-end gap-2">
                         <div className="w-7 h-7 rounded-full flex-shrink-0"
                           style={{ background: 'linear-gradient(135deg, #FF6B35, #FFB800)' }} />
                         <div className="px-4 py-3 rounded-2xl"
-                          style={{
-                            background: '#FDFCF9',
-                            borderRadius: '20px 20px 20px 6px',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                          }}>
+                          style={{ background: '#FDFCF9', borderRadius: '20px 20px 20px 6px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                           <div className="flex gap-1 items-center">
                             {[0, 150, 300].map(delay => (
-                              <div key={delay}
-                                className="w-2 h-2 rounded-full animate-bounce"
+                              <div key={delay} className="w-2 h-2 rounded-full animate-bounce"
                                 style={{ background: '#FF6B35', animationDelay: `${delay}ms` }} />
                             ))}
                           </div>
@@ -640,7 +715,6 @@ export default function Chat() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Upload error */}
                   {uploadError && (
                     <div className="mx-5 mb-2 px-4 py-2.5 rounded-xl text-sm flex items-center justify-between"
                       style={{ background: '#FFF0ED', color: '#FF3B30' }}>
@@ -651,27 +725,13 @@ export default function Chat() {
 
                   {/* Input area */}
                   <div className="px-5 py-4 flex-shrink-0"
-                    style={{
-                      background: '#FDFCF9',
-                      borderTop: '1px solid rgba(0,0,0,0.06)',
-                    }}>
+                    style={{ background: '#FDFCF9', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                     <form onSubmit={handleSend} className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="p-2.5 rounded-xl transition flex-shrink-0"
-                        style={{
-                          background: uploading ? '#F0EDE8' : '#FFF7ED',
-                          color: uploading ? '#C7C7CC' : '#FF6B35',
-                        }}>
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"
+                        accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip" />
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading} className="p-2.5 rounded-xl transition flex-shrink-0"
+                        style={{ background: uploading ? '#F0EDE8' : '#FFF7ED', color: uploading ? '#C7C7CC' : '#FF6B35' }}>
                         {uploading ? (
                           <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
                             style={{ borderColor: '#FF6B35', borderTopColor: 'transparent' }} />
@@ -682,29 +742,15 @@ export default function Chat() {
                         )}
                       </button>
 
-                      <input
-                        value={newMessage}
-                        onChange={handleTypingInput}
-                        placeholder="Napiši poruku..."
+                      <input value={newMessage} onChange={handleTypingInput} placeholder="Napiši poruku..."
                         className="flex-1 px-4 py-3 rounded-2xl text-sm focus:outline-none transition"
-                        style={{
-                          background: '#F0EDE8',
-                          color: '#1C1C1E',
-                          border: '1.5px solid transparent',
-                        }}
+                        style={{ background: '#F0EDE8', color: '#1C1C1E', border: '1.5px solid transparent' }}
                         onFocus={e => e.target.style.borderColor = '#FF6B35'}
-                        onBlur={e => e.target.style.borderColor = 'transparent'}
-                      />
+                        onBlur={e => e.target.style.borderColor = 'transparent'} />
 
-                      <button
-                        type="submit"
-                        disabled={!newMessage.trim()}
+                      <button type="submit" disabled={!newMessage.trim()}
                         className="p-3 rounded-2xl text-white transition disabled:opacity-40 flex-shrink-0"
-                        style={{
-                          background: newMessage.trim()
-                            ? 'linear-gradient(135deg, #FF6B35, #FFB800)'
-                            : '#E5E5EA',
-                        }}>
+                        style={{ background: newMessage.trim() ? 'linear-gradient(135deg, #FF6B35, #FFB800)' : '#E5E5EA' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
@@ -713,13 +759,8 @@ export default function Chat() {
                   </div>
                 </div>
 
-                {/* Chat Details Panel */}
                 {showDetails && (
-                  <ChatDetails
-                    conversation={activeConversation}
-                    onClose={() => setShowDetails(false)}
-                    currentUser={user}
-                  />
+                  <ChatDetails conversation={activeConversation} onClose={() => setShowDetails(false)} currentUser={user} />
                 )}
               </div>
             </>
@@ -727,30 +768,22 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* ── Save toast notifikacija ────────────────────────────── */}
       {saveToast && (
         <div style={{
           position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
           zIndex: 9999, padding: '12px 20px', borderRadius: '100px',
-          background: saveToast.type === 'success' ? '#1C1C1E' : '#1C1C1E',
-          color: 'white', fontSize: '14px', fontWeight: '700',
+          background: '#1C1C1E', color: 'white', fontSize: '14px', fontWeight: '700',
           boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
           display: 'flex', alignItems: 'center', gap: '8px',
-          animation: 'fadeSlideUp 0.3s ease',
           whiteSpace: 'nowrap',
         }}>
-          {saveToast.type === 'success'
-            ? <span style={{ color: '#4ADE80' }}>✓</span>
-            : <span>💡</span>}
+          {saveToast.type === 'success' ? <span style={{ color: '#4ADE80' }}>✓</span> : <span>💡</span>}
           {saveToast.text}
         </div>
       )}
 
       {showGroupModal && (
-        <CreateGroupModal
-          onClose={() => setShowGroupModal(false)}
-          onCreated={handleGroupCreated}
-        />
+        <CreateGroupModal onClose={() => setShowGroupModal(false)} onCreated={handleGroupCreated} />
       )}
     </div>
   )

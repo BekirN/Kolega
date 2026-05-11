@@ -351,6 +351,7 @@ const searchUsers = async (req, res) => {
 
     const users = await prisma.user.findMany({
       where: {
+        deletedAt: null,
         OR: [
           { firstName: { contains: q, mode: 'insensitive' } },
           { lastName: { contains: q, mode: 'insensitive' } },

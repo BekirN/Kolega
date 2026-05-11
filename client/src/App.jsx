@@ -26,6 +26,9 @@ import Housing from './pages/Housing'
 import NewHousing from './pages/NewHousing'
 import VerifyEmail from './pages/VerifyEmail'
 import Admin from './pages/Admin'
+import MyApplications from './pages/MyApplications'
+import CompanyApplications from './pages/CompanyApplications'
+import ErrorBoundary from './components/ErrorBoundary'
 
 import { initSocket, disconnectSocket } from './services/socket'
 const PublicRoute = ({ children }) => {
@@ -55,7 +58,8 @@ function App() {
   return (
     <BrowserRouter>
       <NotificationProvider>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -82,7 +86,11 @@ function App() {
           <Route path="/housing/new" element={<PrivateRoute><NewHousing /></PrivateRoute>} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+          <Route path="/companies/my-applications" element={<PrivateRoute><MyApplications /></PrivateRoute>} />
+          <Route path="/companies/:companyId/applications" element={<PrivateRoute><CompanyApplications /></PrivateRoute>} />
+          <Route path="/companies/:id" element={<PrivateRoute><CompanyDetail /></PrivateRoute>} />
         </Routes>
+        </ErrorBoundary>
       </NotificationProvider>
     </BrowserRouter>
   )

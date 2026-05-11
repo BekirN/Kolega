@@ -19,7 +19,7 @@ const getListings = async (req, res) => {
       furnished, lookingForRoommate, search
     } = req.query
 
-    const filters = { isActive: true }
+    const filters = { isActive: true, deletedAt: null }
 
     if (type) filters.type = type
     if (city) filters.city = { contains: city, mode: 'insensitive' }
@@ -61,7 +61,7 @@ const getListings = async (req, res) => {
 const getListingById = async (req, res) => {
   try {
     const listing = await prisma.housingListing.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, deletedAt: null },
       include: {
         owner: {
           select: {
@@ -178,7 +178,8 @@ const deleteListing = async (req, res) => {
       return res.status(403).json({ message: 'Nemate pristup' })
     }
 
-    await prisma.housingListing.delete({ where: { id: req.params.id } })
+    await prisma.housingListing.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
+
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -188,7 +189,7 @@ const deleteListing = async (req, res) => {
 const getMyListings = async (req, res) => {
   try {
     const listings = await prisma.housingListing.findMany({
-      where: { ownerId: req.user.userId },
+      where: { ownerId: req.user.userId, deletedAt: null },
       orderBy: { createdAt: 'desc' }
     })
     res.json(listings)

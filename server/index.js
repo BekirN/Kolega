@@ -15,7 +15,8 @@ const chatRoutes = require('./routes/chat')
 const materialRoutes = require('./routes/materials')
 const housingRoutes = require('./routes/housing')
 const adminRoutes = require('./routes/admin')
-
+const internshipRoutes = require('./routes/internships')
+const rateLimit = require('express-rate-limit')
 const app = express()
 const server = http.createServer(app)
 
@@ -23,15 +24,34 @@ const connectionRoutes = require('./routes/connections')
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: process.env.CLIENT_URL,
     methods: ['GET', 'POST']
   }
 })
 
-app.use(cors({ origin: 'http://localhost:5173' }))
+app.use(cors({ origin: process.env.CLIENT_URL }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Previše pokušaja prijave. Pokušaj ponovo za 15 minuta.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { message: 'Previše zahtjeva. Pokušaj ponovo za minutu.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/register', authLimiter)
+app.use('/api/auth/resend-verification', authLimiter)
+app.use('/api', apiLimiter)
 app.use('/api/auth', authRoutes)
 app.use('/api/shop', shopRoutes)
 app.use('/api/jobs', jobRoutes)
@@ -44,6 +64,7 @@ app.use('/api/activities', activityRoutes)
 app.use('/api/materials', materialRoutes)
 app.use('/api/housing', housingRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/internships', internshipRoutes)
 // Socket.io logic
 const jwt = require('jsonwebtoken')
 

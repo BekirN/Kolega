@@ -65,88 +65,115 @@ const getConversations = async (req, res) => {
   }
 }
 
-// Kreiraj ili dohvati konverzaciju između dva korisnika
 const getOrCreateConversation = async (req, res) => {
   try {
     const { userId } = req.params
+    const currentUserId = req.user.userId
 
-    if (userId === req.user.userId) {
-      return res.status(400).json({ message: 'Ne možete chatovati sami sa sobom' })
+    if (userId === currentUserId) {
+      return res.status(403).json({ message: 'Ne možete chatovati sami sa sobom' })
     }
-    // Provjeri da li su kolege
-    const connection = await prisma.connection.findFirst({
-      where: {
-        OR: [
-          { senderId: req.user.userId, receiverId: userId, status: 'ACCEPTED' },
-          { senderId: userId, receiverId: req.user.userId, status: 'ACCEPTED' }
-        ]
-      }
-    })
-    if (!connection) {
+
+    // ─── Provjeri da li mogu chatovati ───────────────────────────
+    const canChat = await checkCanChat(currentUserId, userId)
+    if (!canChat) {
       return res.status(403).json({
-        message: 'Morate biti kolege da biste chatovali',
+        message: 'Morate biti povezani da biste chatovali',
         code: 'NOT_CONNECTED'
       })
     }
-    const otherUser = await prisma.user.findUnique({ where: { id: userId } })
-    if (!otherUser) return res.status(404).json({ message: 'Korisnik nije pronađen' })
 
-    // Traži postojeću konverzaciju
+    // Provjeri da li postoji konverzacija
     const existing = await prisma.conversation.findFirst({
       where: {
         isGroup: false,
         AND: [
-          { participants: { some: { userId: req.user.userId } } },
+          { participants: { some: { userId: currentUserId } } },
           { participants: { some: { userId } } },
         ]
       },
       include: {
-        participants: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, faculty: true, profileImage: true } }
-          }
-        },
-        messages: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            sender: { select: { id: true, firstName: true, lastName: true, profileImage: true } }
-          }
-        }
+        participants: { include: { user: { select: { id: true, firstName: true, lastName: true, profileImage: true, faculty: true } } } },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 }
       }
     })
 
     if (existing) return res.json(existing)
 
-    // Kreiraj novu konverzaciju
     const conversation = await prisma.conversation.create({
       data: {
         isGroup: false,
         participants: {
-          create: [
-            { userId: req.user.userId },
-            { userId },
-          ]
+          create: [{ userId: currentUserId }, { userId }]
         }
       },
       include: {
-        participants: {
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true, faculty: true, profileImage: true } }
-          }
-        },
-        messages: {
-          orderBy: { createdAt: 'asc' },
-          include: {
-            sender: { select: { id: true, firstName: true, lastName: true, profileImage: true } }
-          }
-        }
+        participants: { include: { user: { select: { id: true, firstName: true, lastName: true, profileImage: true, faculty: true } } } },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 }
       }
     })
 
-    res.status(201).json(conversation)
+    res.json(conversation)
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
   }
+}
+
+// ─── Helper: provjeri da li dva korisnika mogu chatovati ──────────
+const checkCanChat = async (userAId, userBId) => {
+  // 1. Jesu li već Kolege (connected)
+  const connection = await prisma.connection.findFirst({
+    where: {
+      status: 'ACCEPTED',
+      OR: [
+        { senderId: userAId, receiverId: userBId },
+        { senderId: userBId, receiverId: userAId },
+      ]
+    }
+  })
+  if (connection) return true
+
+  // 2. Jedan je HR firme, drugi je aplicirao na njihovu praksu
+  const internshipConnection = await prisma.internshipApplication.findFirst({
+    where: {
+      OR: [
+        // UserA je applicant, UserB je HR firme
+        {
+          applicantId: userAId,
+          internship: {
+            company: {
+              members: { some: { userId: userBId } }
+            }
+          }
+        },
+        // UserB je applicant, UserA je HR firme
+        {
+          applicantId: userBId,
+          internship: {
+            company: {
+              members: { some: { userId: userAId } }
+            }
+          }
+        },
+      ]
+    }
+  })
+  if (internshipConnection) return true
+
+  // 3. Jedan prodaje predmet, drugi je vlasnik (Shop kontekst)
+  const shopConnection = await prisma.shopItem.findFirst({
+    where: {
+      OR: [
+        { sellerId: userAId },
+        { sellerId: userBId },
+      ],
+      isAvailable: true,
+    }
+  })
+  // Shop je otvoreni kontekst – dozvoli svima
+  if (shopConnection) return true
+
+  return false
 }
 
 // Dohvati poruke konverzacije

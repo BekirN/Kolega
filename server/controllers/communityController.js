@@ -6,7 +6,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const getPosts = async (req, res) => {
   try {
     const { category, search } = req.query
-    const filters = {}
+    const filters = {deletedAt: null}
 
     if (category) filters.category = category
     if (search) {
@@ -36,7 +36,7 @@ const getPosts = async (req, res) => {
 const getPostById = async (req, res) => {
   try {
     const post = await prisma.communityPost.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, deletedAt: null },
       include: {
         author: {
           select: { id: true, firstName: true, lastName: true, faculty: true }
@@ -115,7 +115,8 @@ const deletePost = async (req, res) => {
       return res.status(403).json({ message: 'Nemate pristup' })
     }
 
-    await prisma.communityPost.delete({ where: { id: req.params.id } })
+    await prisma.communityPost.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
+
     res.json({ message: 'Post obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -129,7 +130,7 @@ const createComment = async (req, res) => {
 
     if (!content) return res.status(400).json({ message: 'Komentar ne može biti prazan' })
 
-    const post = await prisma.communityPost.findUnique({ where: { id } })
+    const post = await prisma.communityPost.findUnique({ where: { id, deletedAt: null } })
     if (!post) return res.status(404).json({ message: 'Post nije pronađen' })
 
     const comment = await prisma.communityComment.create({

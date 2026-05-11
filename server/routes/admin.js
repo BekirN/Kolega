@@ -14,6 +14,7 @@ const {
   getAllContent,
   getPendingVerifications,  
   reviewVerification,  
+  assignCompanyMember, removeCompanyMember, getCompaniesForAdmin
 } = require('../controllers/adminController')
 
 // Sve admin rute zahtijevaju autentikaciju + admin rolu
@@ -31,5 +32,10 @@ router.post('/notify', sendSystemNotification)
 
 router.get('/verifications', getPendingVerifications)
 router.put('/verifications/:id', reviewVerification)
+
+
+router.get('/companies', isAdmin, getCompaniesForAdmin)
+router.post('/companies/member', isAdmin, assignCompanyMember)
+router.delete('/companies/member', isAdmin, removeCompanyMember)
 
 module.exports = router

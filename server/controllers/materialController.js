@@ -114,7 +114,7 @@ const getMyMaterials = async (req, res) => {
     await createDefaultFolders(req.user.userId)
 
     const { folderId, search } = req.query
-    const filters = { uploaderId: req.user.userId }
+    const filters = { uploaderId: req.user.userId, deletedAt: null }
 
     if (folderId) filters.folderId = folderId
     if (search) {
@@ -171,7 +171,7 @@ const getSavedMaterials = async (req, res) => {
 const getPublicMaterials = async (req, res) => {
   try {
     const { search, subject, faculty, sort } = req.query
-    const filters = { isPublic: true }
+    const filters = { isPublic: true, deletedAt: null }
 
     if (subject) filters.subject = { contains: subject, mode: 'insensitive' }
     if (faculty) filters.faculty = { contains: faculty, mode: 'insensitive' }
@@ -288,7 +288,7 @@ const saveMaterial = async (req, res) => {
     const { materialId } = req.params
     const { source, folderId } = req.body
 
-    const material = await prisma.material.findUnique({ where: { id: materialId } })
+    const material = await prisma.material.findUnique({ where: { id: materialId, deletedAt: null } })
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId === req.user.userId) {
       return res.status(400).json({ message: 'Ne možete sačuvati vlastiti materijal' })
@@ -359,11 +359,12 @@ const unsaveMaterial = async (req, res) => {
 
 const deleteMaterial = async (req, res) => {
   try {
-    const material = await prisma.material.findUnique({ where: { id: req.params.id } })
+    const material = await prisma.material.findUnique({ where: { id: req.params.id, deletedAt: null } })
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId !== req.user.userId) return res.status(403).json({ message: 'Nemate pristup' })
 
-    await prisma.material.delete({ where: { id: req.params.id } })
+    await prisma.material.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
+
     res.json({ message: 'Materijal obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -372,7 +373,7 @@ const deleteMaterial = async (req, res) => {
 
 const togglePublic = async (req, res) => {
   try {
-    const material = await prisma.material.findUnique({ where: { id: req.params.id } })
+    const material = await prisma.material.findUnique({ where: { id: req.params.id, deletedAt: null } })
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId !== req.user.userId) return res.status(403).json({ message: 'Nemate pristup' })
 
@@ -393,7 +394,7 @@ const togglePublic = async (req, res) => {
 const moveMaterial = async (req, res) => {
   try {
     const { folderId } = req.body
-    const material = await prisma.material.findUnique({ where: { id: req.params.id } })
+    const material = await prisma.material.findUnique({ where: { id: req.params.id, deletedAt: null } })
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId !== req.user.userId) return res.status(403).json({ message: 'Nemate pristup' })
 

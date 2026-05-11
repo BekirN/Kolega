@@ -4,7 +4,7 @@ const { sendNewJobEmail } = require('../config/mailgun')
 const getJobs = async (req, res) => {
   try {
     const { type, category, search, isRemote } = req.query
-    const filters = { isActive: true }
+    const filters = { isActive: true, deletedAt: null }
 
     if (type) filters.type = type
     if (category) filters.category = category
@@ -39,7 +39,7 @@ const getJobs = async (req, res) => {
 const getJobById = async (req, res) => {
   try {
     const job = await prisma.studentJob.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, deletedAt: null },
       include: {
         author: {
           select: {
@@ -95,7 +95,8 @@ const createJob = async (req, res) => {
         const users = await prisma.user.findMany({
           where: {
             emailVerified: true,
-            id: { not: req.user.userId } // Ne šalji autoru
+            deletedAt: null,
+            id: { not: req.user.userId }
           },
           select: { email: true, firstName: true }
         })
@@ -150,7 +151,8 @@ const deleteJob = async (req, res) => {
       return res.status(403).json({ message: 'Nemate pristup' })
     }
 
-    await prisma.studentJob.delete({ where: { id: req.params.id } })
+    await prisma.studentJob.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
+
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -160,7 +162,7 @@ const deleteJob = async (req, res) => {
 const getMyJobs = async (req, res) => {
   try {
     const jobs = await prisma.studentJob.findMany({
-      where: { authorId: req.user.userId },
+      where: { authorId: req.user.userId, deletedAt: null },
       orderBy: { createdAt: 'desc' }
     })
     res.json(jobs)

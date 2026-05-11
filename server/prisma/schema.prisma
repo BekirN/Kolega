@@ -57,7 +57,12 @@ model User {
   
   activitiesReceived  Activity[] @relation("ActivityReceiver")
   activitiesCaused    Activity[] @relation("ActivityActor")
-  
+
+  companyMemberships CompanyMember[]
+  applications       InternshipApplication[]
+
+  deletedAt   DateTime?
+
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 }
@@ -97,6 +102,7 @@ model ShopItem {
   sellerId    String
   seller      User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 
+  deletedAt   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -147,6 +153,7 @@ model HousingListing {
   ownerId       String
   owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
+  deletedAt   DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -263,6 +270,7 @@ model Material {
 
   saves         MaterialSave[]
 
+  deletedAt   DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -313,28 +321,37 @@ model Company {
   averageRating Float?           @default(0)
   reviewCount   Int              @default(0)
 
+  members    CompanyMember[]
+  isVerified Boolean @default(false)
+
+  deletedAt   DateTime?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 }
 
 model Internship {
-  id           String     @id @default(uuid())
+  id           String         @id @default(uuid())
   title        String
   description  String
   requirements String?
   duration     String?
-  isPaid       Boolean    @default(false)
+  type         InternshipType @default(FULL_TIME)
+  isPaid       Boolean        @default(false)
   salary       Float?
-  isActive     Boolean    @default(true)
   deadline     DateTime?
-
+  isActive     Boolean        @default(true)
+  location     String?
+  skills       String[]       // niz vještina: ["React", "Node.js"]
+  
   companyId    String
-  company      Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  company      Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  applications InternshipApplication[]
+  
+  deletedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
-
 model InternshipReview {
   id              String   @id @default(uuid())
   rating          Int      // 1-5
@@ -472,6 +489,7 @@ model Message {
   sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
   createdAt      DateTime     @default(now())
+  @@index([conversationId, createdAt])
 }
 
 model ConversationRead {
@@ -498,6 +516,7 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime         @default(now())
+  @@index([userId, createdAt])
 }
 
 enum NotificationType {
@@ -529,6 +548,7 @@ model Connection {
   updatedAt   DateTime         @updatedAt
 
   @@unique([senderId, receiverId])
+  @@index([receiverId, status])
 }
 
 enum ConnectionStatus {
@@ -559,6 +579,7 @@ model Activity {
   referenceId String?
 
   createdAt   DateTime     @default(now())
+  @@index([userId, createdAt])
 }
 
 enum ActivityType {
@@ -594,6 +615,7 @@ model StudentJob {
   authorId     String
   author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  deletedAt   DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
@@ -625,3 +647,57 @@ enum SalaryPeriod {
 
 
 
+
+
+enum CompanyRole {
+  OWNER
+  HR
+  RECRUITER
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  INTERVIEW
+  ACCEPTED
+  REJECTED
+}
+
+enum InternshipType {
+  FULL_TIME
+  PART_TIME
+  REMOTE
+  HYBRID
+}
+
+model CompanyMember {
+  id        String      @id @default(uuid())
+  role      CompanyRole @default(HR)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, companyId])
+}
+
+model InternshipApplication {
+  id           String            @id @default(uuid())
+  status       ApplicationStatus @default(PENDING)
+  coverLetter  String?
+  cvUrl        String?
+  notes        String?           // Interne bilješke HR-a
+
+  internshipId String
+  internship   Internship        @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  applicantId  String
+  applicant    User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([internshipId, applicantId])
+  @@index([applicantId])
+  @@index([internshipId])
+}

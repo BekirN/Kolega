@@ -16,16 +16,17 @@ const getStats = async (req, res) => {
       totalBookings,
       recentUsers,
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { emailVerified: true } }),
-      prisma.shopItem.count(),
-      prisma.housingListing.count(),
-      prisma.studentJob.count(),
-      prisma.internship.count(),
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.user.count({ where: { emailVerified: true, deletedAt: null } }),
+      prisma.shopItem.count({ where: { deletedAt: null } }),
+      prisma.housingListing.count({ where: { deletedAt: null } }),
+      prisma.studentJob.count({ where: { deletedAt: null } }),
+      prisma.internship.count({ where: { deletedAt: null } }),
       prisma.communityPost.count(),
-      prisma.material.count(),
+      prisma.material.count({ where: { deletedAt: null } }),
       prisma.tutorBooking.count(),
       prisma.user.findMany({
+        where: { deletedAt: null },
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {
@@ -68,7 +69,7 @@ const getUsers = async (req, res) => {
     const { search, role, page = 1, limit = 20 } = req.query
     const skip = (parseInt(page) - 1) * parseInt(limit)
 
-    const where = {}
+    const where = { deletedAt: null }
     if (role) where.role = role
     if (search) {
       where.OR = [
@@ -110,7 +111,8 @@ const getUsers = async (req, res) => {
 const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body
-    if (!['STUDENT', 'ADMIN'].includes(role)) {
+    const validRoles = ['STUDENT', 'ADMIN']
+    if (!validRoles.includes(role)) {
       return res.status(400).json({ message: 'Neispravna rola' })
     }
     if (req.params.id === req.user.userId) {
@@ -129,13 +131,91 @@ const updateUserRole = async (req, res) => {
   }
 }
 
+const assignCompanyMember = async (req, res) => {
+  try {
+    const { userId, companyId, role } = req.body
+    const validRoles = ['OWNER', 'HR', 'RECRUITER']
+
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Neispravna rola' })
+    }
+
+    // Provjeri da li već postoji membership
+    const existing = await prisma.companyMember.findUnique({
+      where: { userId_companyId: { userId, companyId } }
+    })
+
+    let member
+    if (existing) {
+      member = await prisma.companyMember.update({
+        where: { userId_companyId: { userId, companyId } },
+        data: { role },
+        include: {
+          user: { select: { firstName: true, lastName: true } },
+          company: { select: { name: true } }
+        }
+      })
+    } else {
+      member = await prisma.companyMember.create({
+        data: { userId, companyId, role },
+        include: {
+          user: { select: { firstName: true, lastName: true } },
+          company: { select: { name: true } }
+        }
+      })
+    }
+
+    res.json({
+      message: `${member.user.firstName} dodan kao ${role} u ${member.company.name}!`,
+      member
+    })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+const removeCompanyMember = async (req, res) => {
+  try {
+    const { userId, companyId } = req.body
+
+    await prisma.companyMember.delete({
+      where: { userId_companyId: { userId, companyId } }
+    })
+
+    res.json({ message: 'Membership uklonjen!' })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
+const getCompaniesForAdmin = async (req, res) => {
+  try {
+    const companies = await prisma.company.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true, name: true, industry: true,
+        members: {
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, email: true } }
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    })
+    res.json(companies)
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+  }
+}
+
 const deleteUser = async (req, res) => {
   try {
     if (req.params.id === req.user.userId) {
       return res.status(400).json({ message: 'Ne možete obrisati vlastiti nalog' })
     }
 
-    await prisma.user.delete({ where: { id: req.params.id } })
+    await prisma.user.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
+
     res.json({ message: 'Korisnik obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -164,14 +244,15 @@ const deleteContent = async (req, res) => {
   try {
     const { type, id } = req.params
 
+    const softDelete = (model) => model.update({ where: { id }, data: { deletedAt: new Date() } })
     const modelMap = {
-      shop: () => prisma.shopItem.delete({ where: { id } }),
-      housing: () => prisma.housingListing.delete({ where: { id } }),
-      job: () => prisma.studentJob.delete({ where: { id } }),
-      post: () => prisma.communityPost.delete({ where: { id } }),
-      material: () => prisma.material.delete({ where: { id } }),
-      internship: () => prisma.internship.delete({ where: { id } }),
-      booking: () => prisma.tutorBooking.delete({ where: { id } }),
+      shop: () => softDelete(prisma.shopItem),
+      housing: () => softDelete(prisma.housingListing),
+      job: () => softDelete(prisma.studentJob),
+      post: () => softDelete(prisma.communityPost),
+      material: () => softDelete(prisma.material),
+      internship: () => softDelete(prisma.internship),
+      booking: () => prisma.tutorBooking.delete({ where: { id } }), 
     }
 
     if (!modelMap[type]) {
@@ -194,7 +275,7 @@ const sendBroadcastEmail = async (req, res) => {
       return res.status(400).json({ message: 'Subject i poruka su obavezni' })
     }
 
-    const where = { emailVerified: true }
+    const where = { emailVerified: true, deletedAt: null }
     if (targetRole === 'STUDENT') where.role = 'STUDENT'
     if (targetRole === 'ADMIN') where.role = 'ADMIN'
 
@@ -307,7 +388,7 @@ const sendSystemNotification = async (req, res) => {
 
     if (!message) return res.status(400).json({ message: 'Poruka je obavezna' })
 
-    const where = {}
+    const where = { deletedAt: null }
     if (targetRole === 'STUDENT') where.role = 'STUDENT'
 
     const users = await prisma.user.findMany({
@@ -347,18 +428,22 @@ const getAllContent = async (req, res) => {
 
     const queries = {
       shop: () => prisma.shopItem.findMany({
+        where: { deletedAt: null },
         include: { seller: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
       housing: () => prisma.housingListing.findMany({
+        where: { deletedAt: null },
         include: { owner: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
       jobs: () => prisma.studentJob.findMany({
+        where: { deletedAt: null },
         include: { author: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
       materials: () => prisma.material.findMany({
+        where: { deletedAt: null },
         include: { uploader: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' }, take: 50,
       }),
@@ -380,6 +465,7 @@ const getPendingVerifications = async (req, res) => {
 
     // Provjeri sve korisnike i njihove statuse
     const allUsers = await prisma.user.findMany({
+      where: { deletedAt: null },
       select: { id: true, firstName: true, verificationStatus: true, indexImage: true }
     })
     console.log('Svi korisnici statusi:', allUsers.map(u => ({
@@ -389,7 +475,7 @@ const getPendingVerifications = async (req, res) => {
     })))
 
     const users = await prisma.user.findMany({
-      where: { verificationStatus: 'PENDING' },
+      where: { verificationStatus: 'PENDING', deletedAt: null },
       select: {
         id: true, firstName: true, lastName: true,
         email: true, faculty: true, university: true,
@@ -474,15 +560,8 @@ const reviewVerification = async (req, res) => {
 }
 
 module.exports = {
-  getStats,
-  getUsers,
-  updateUserRole,
-  deleteUser,
-  verifyUser,
-  deleteContent,
-  sendBroadcastEmail,
-  sendSystemNotification,
-  getAllContent,
-  getPendingVerifications,
-  reviewVerification,
+  getStats, getUsers, updateUserRole, deleteUser, verifyUser,
+  deleteContent, sendBroadcastEmail, sendSystemNotification,
+  getAllContent, getPendingVerifications, reviewVerification,
+  assignCompanyMember, removeCompanyMember, getCompaniesForAdmin, 
 }

@@ -4,7 +4,7 @@ const { sendNewInternshipEmail } = require('../config/mailgun')
 const getCompanies = async (req, res) => {
   try {
     const { search, industry, city } = req.query
-    const filters = {}
+    const filters = { deletedAt: null }
 
     if (search) {
       filters.OR = [
@@ -19,7 +19,7 @@ const getCompanies = async (req, res) => {
       where: filters,
       include: {
         internships: {
-          where: { isActive: true },
+          where: { isActive: true, deletedAt: null },
           select: { id: true, title: true, isPaid: true }
         },
         _count: { select: { reviews: true } }
@@ -36,9 +36,9 @@ const getCompanies = async (req, res) => {
 const getCompanyById = async (req, res) => {
   try {
     const company = await prisma.company.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, deletedAt: null },
       include: {
-        internships: { where: { isActive: true } },
+        internships: { where: { isActive: true, deletedAt: null } },
         reviews: {
           include: {
             reviewer: {
@@ -81,7 +81,7 @@ const createInternship = async (req, res) => {
     const { title, description, requirements, duration, isPaid, salary, deadline } = req.body
     const { id } = req.params
 
-    const company = await prisma.company.findUnique({ where: { id } })
+    const company = await prisma.company.findUnique({ where: { id, deletedAt: null } })
     if (!company) return res.status(404).json({ message: 'Firma nije pronađena' })
 
     const internship = await prisma.internship.create({
@@ -96,7 +96,7 @@ const createInternship = async (req, res) => {
     // Pošalji email svim korisnicima
     try {
       const users = await prisma.user.findMany({
-        where: { emailVerified: true },
+        where: { emailVerified: true, deletedAt: null },
         select: { email: true, firstName: true }
       })
 
@@ -140,7 +140,7 @@ const createReview = async (req, res) => {
       return res.status(400).json({ message: 'Već ste ostavili recenziju za ovu firmu' })
     }
 
-    const company = await prisma.company.findUnique({ where: { id } })
+    const company = await prisma.company.findUnique({ where: { id, deletedAt: null } })
 
     const review = await prisma.internshipReview.create({
       data: {

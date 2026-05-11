@@ -16,7 +16,7 @@ const getItems = async (req, res) => {
   try {
     const { category, search, minPrice, maxPrice } = req.query
 
-    const filters = { isAvailable: true }
+    const filters = { isAvailable: true, deletedAt: null}
 
     if (category) filters.category = category
     if (search) {
@@ -54,7 +54,7 @@ const getItems = async (req, res) => {
 const getItemById = async (req, res) => {
   try {
     const item = await prisma.shopItem.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, deletedAt: null },
       include: {
         seller: {
           select: {
@@ -157,7 +157,7 @@ const deleteItem = async (req, res) => {
       return res.status(403).json({ message: 'Nemate pristup ovom oglasu' })
     }
 
-    await prisma.shopItem.delete({ where: { id: req.params.id } })
+    await prisma.shopItem.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
     res.status(500).json({ message: 'Greška na serveru', error: error.message })
@@ -168,7 +168,7 @@ const deleteItem = async (req, res) => {
 const getMyItems = async (req, res) => {
   try {
     const items = await prisma.shopItem.findMany({
-      where: { sellerId: req.user.userId },
+      where: { sellerId: req.user.userId, deletedAt: null},
       orderBy: { createdAt: 'desc' }
     })
     res.json(items)
