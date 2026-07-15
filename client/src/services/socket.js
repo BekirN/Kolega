@@ -15,11 +15,12 @@ export const initSocket = () => {
   }
 
   socket = io('http://localhost:5000', {
-    auth: { token },
+    auth: (cb) => cb({ token: localStorage.getItem('token') }),
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 2000,
-    transports: ['websocket'],
+    reconnectionDelayMax: 5000,
+    transports: ['websocket', 'polling'],
   })
 
   socket.on('connect', () => {
@@ -46,6 +47,15 @@ export const getSocket = () => {
     return initSocket()
   }
   return socket
+}
+
+// Kad se laptop probudi ili se tab vrati u fokus, ne cekaj backoff - spoji odmah
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && socket && !socket.connected) {
+      socket.connect()
+    }
+  })
 }
 
 export const disconnectSocket = () => {

@@ -4,9 +4,18 @@ import { getSocket } from '../services/socket'
 
 const NotificationContext = createContext(null)
 
+let sharedAudioCtx = null
+const getAudioContext = () => {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)()
+  }
+  return sharedAudioCtx
+}
+
 const playSound = (type = 'message') => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioContext()
+    if (ctx.state === 'suspended') ctx.resume()
     const frequencies = type === 'group' ? [523, 659, 784] : [880, 660]
     frequencies.forEach((freq, i) => {
       const osc = ctx.createOscillator()
@@ -36,6 +45,19 @@ export function NotificationProvider({ children }) {
   const activeConversationRef = useRef(null)
   const registeredRef = useRef(false)
   const userId = JSON.parse(localStorage.getItem('user') || '{}')?.id || null
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      const ctx = getAudioContext()
+      if (ctx.state === 'suspended') ctx.resume()
+    }
+    window.addEventListener('pointerdown', unlockAudio, { once: true })
+    window.addEventListener('keydown', unlockAudio, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio)
+      window.removeEventListener('keydown', unlockAudio)
+    }
+  }, [])
 
   useEffect(() => {
     if (!location.pathname.startsWith('/chat')) {
