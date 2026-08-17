@@ -262,7 +262,7 @@ export default function Companies() {
             </div>
           </AnimatedScale>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+          <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
             {companies.map((company, i) => (
               <AnimatedSection key={company.id} delay={i * 0.07} direction="up">
                 <div

@@ -68,6 +68,17 @@
     z-index: 60 !important;
     border-left: none !important;
   }
+  /* Materials: folderi + lista se slazu vertikalno (umjesto stisnutih uz rub) */
+  .materials-layout {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  .materials-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    max-height: 240px;
+  }
 }
 
 /* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */

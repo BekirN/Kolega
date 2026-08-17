@@ -294,10 +294,10 @@ export default function Materials() {
 
       {/* Sadržaj */}
       {activeTab === 'library' ? (
-        <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
+        <div className="materials-layout" style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
 
           {/* Sidebar – Folderi */}
-          <div style={{
+          <div className="materials-sidebar" style={{
             width: '260px', flexShrink: 0, padding: '20px 16px',
             borderRight: '1px solid rgba(0,0,0,0.06)',
             overflowY: 'auto', background: '#F7F5F0',
