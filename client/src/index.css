@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* Mobilni drawer: skriven van ekrana, klizi unutra kad je data-open="true".
+   Na desktopu (lg = 1024px) je uvijek vidljiv — cisti CSS, bez JS. */
+.kolega-drawer {
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+.kolega-drawer[data-open="true"] {
+  transform: translateX(0);
+}
+@media (min-width: 1024px) {
+  .kolega-drawer {
+    transform: translateX(0);
+  }
+}
+
 :root {
   --bg-page: #E2DDD6;
   --bg-card: #EEEBE5;
