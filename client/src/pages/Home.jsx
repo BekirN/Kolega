@@ -298,7 +298,7 @@ export default function Dashboard() {
 
         {/* Stats bar */}
         <AnimatedSection delay={0.35} direction="up" style={{ marginTop: '20px' }}>
-          <div style={{
+          <div className="stack-mobile" style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px',
           }}>
             {[

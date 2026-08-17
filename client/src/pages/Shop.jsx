@@ -178,7 +178,7 @@ export default function Shop() {
               </p>
             </AnimatedSection>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
               {items.map((item, i) => (
                 <AnimatedScale key={item.id} delay={i * 0.06}>
                   <div style={{

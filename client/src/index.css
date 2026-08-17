@@ -51,6 +51,10 @@
   .stack-mobile {
     grid-template-columns: 1fr !important;
   }
+  /* Liste kartica: 3 kolone -> 2 na mobilnom (citljivije, marketplace gustina) */
+  .grid-2col-mobile {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
 }
 
 /* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */

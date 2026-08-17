@@ -109,7 +109,7 @@ export default function Tutoring() {
             </div>
           </AnimatedScale>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {tutors.map((tutor, i) => (
               <AnimatedScale key={tutor.id} delay={i * 0.07}>
                 <div
