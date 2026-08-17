@@ -132,12 +132,11 @@ export default function ActivityPanel({ onClose }) {
 
       {/* Panel */}
       <div
+        className="activity-panel"
         style={{
           position: 'absolute',
-          left: '256px',
           top: 0,
           height: '100%',
-          width: '380px',
           background: '#1C1C1E',
           display: 'flex',
           flexDirection: 'column',

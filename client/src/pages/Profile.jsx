@@ -385,9 +385,8 @@ export default function Profile() {
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 24px' }}>
 
         {/* Avatar + info header */}
-        <div style={{
+        <div className="profile-header-row" style={{
           marginTop: '-56px', marginBottom: '28px',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
 
@@ -495,7 +494,7 @@ export default function Profile() {
         </div>
 
         {/* Grid sadržaj */}
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '20px', paddingBottom: '40px' }}>
+        <div className="profile-grid" style={{ paddingBottom: '40px' }}>
 
           {/* Lijeva kolona */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

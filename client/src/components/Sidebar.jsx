@@ -201,7 +201,7 @@ export default function Sidebar() {
           className="lg:hidden fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.5)' }} />
       )}
 
-      <div className="kolega-drawer w-64 min-h-screen flex flex-col fixed left-0 top-0 z-50"
+      <div className="kolega-drawer w-64 flex flex-col fixed inset-y-0 left-0 z-50"
         data-open={mobileOpen}
         style={{ background: '#1C1C1E' }}>
 

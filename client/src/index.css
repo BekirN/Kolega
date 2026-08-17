@@ -15,6 +15,44 @@
   }
 }
 
+/* Panel aktivnosti: puna sirina na mobilnom, pored sidebara na desktopu */
+.activity-panel {
+  left: 0;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .activity-panel {
+    left: 256px;
+    width: 380px;
+  }
+}
+
+/* Profil: dvo-kolonski grid i horizontalno zaglavlje -> slaganje na mobilnom */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+}
+.profile-header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+@media (max-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  /* Grid-ovi sa fiksnim px bocnim stupcem -> jedna kolona na mobilnom */
+  .stack-mobile {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 :root {
   --bg-page: #E2DDD6;
   --bg-card: #EEEBE5;

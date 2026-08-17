@@ -166,7 +166,7 @@ export default function ShopItemDetail() {
 
       {/* Content */}
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '28px 32px 48px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
+        <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
 
           {/* Lijeva kolona */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

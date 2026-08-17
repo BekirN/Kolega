@@ -769,7 +769,7 @@ export default function Admin() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {verifications.map(v => (
                     <div key={v.id} style={{ background: '#2C2C2E', borderRadius: '20px', padding: '24px', border: '1px solid #3A3A3C', opacity: actionLoading === v.id ? 0.6 : 1 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr 220px', gap: '24px', alignItems: 'start' }}>
+                      <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '240px 1fr 220px', gap: '24px', alignItems: 'start' }}>
                         <div>
                           <p style={{ fontSize: '11px', fontWeight: '700', color: '#636366', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Korisnik</p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
