@@ -47,13 +47,26 @@
     align-items: flex-start;
     gap: 16px;
   }
-  /* Grid-ovi sa fiksnim px bocnim stupcem -> jedna kolona na mobilnom */
+  /* Grid-ovi sa fiksnim px bocnim stupcem -> jedna kolona na mobilnom.
+     minmax(0,1fr) dozvoljava koloni da se skupi ispod velicine sadrzaja (bez prelijevanja) */
   .stack-mobile {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   /* Liste kartica: 3 kolone -> 2 na mobilnom (citljivije, marketplace gustina) */
   .grid-2col-mobile {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* Master-detail: sakrij element na mobilnom (npr. listu kad je detalj otvoren) */
+  .mobile-hidden {
+    display: none !important;
+  }
+  /* Materials detalj: full-screen overlay na mobilnom (umjesto uskog 280px panela) */
+  .materials-detail-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    z-index: 60 !important;
+    border-left: none !important;
   }
 }
 

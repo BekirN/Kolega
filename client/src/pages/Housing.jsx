@@ -237,10 +237,10 @@ export default function Housing() {
             </div>
           </AnimatedScale>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: selectedListing ? '1fr 1.4fr' : '1fr', gap: '20px' }}>
+          <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: selectedListing ? '1fr 1.4fr' : '1fr', gap: '20px' }}>
 
             {/* Lista oglasa */}
-            <div>
+            <div className={selectedListing ? 'mobile-hidden' : ''}>
               <AnimatedSection delay={0}>
                 <p style={{ fontSize: '13px', color: '#AEAEB2', fontWeight: '600', marginBottom: '16px' }}>
                   {listings.length} oglasa
@@ -419,6 +419,17 @@ export default function Housing() {
                   position: 'sticky', top: '20px',
                   maxHeight: 'calc(100vh - 100px)', overflowY: 'auto',
                 }}>
+
+                  {/* Mobilni: nazad na listu */}
+                  <button onClick={() => setSelectedListing(null)} className="lg:hidden" style={{
+                    position: 'sticky', top: 0, zIndex: 5, width: '100%',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '12px 16px', background: '#FDFCF9', border: 'none',
+                    borderBottom: '1px solid rgba(0,0,0,0.06)',
+                    color: '#FF6B35', fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+                  }}>
+                    ← Nazad na listu
+                  </button>
 
                   {/* Galerija slika */}
                   {selectedListing.images?.length > 0 ? (

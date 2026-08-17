@@ -188,10 +188,10 @@ export default function StudentJobs() {
             </div>
           </AnimatedScale>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '20px' }}>
+          <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '20px' }}>
 
             {/* Lista */}
-            <div>
+            <div className={selectedJob ? 'mobile-hidden' : ''}>
               <AnimatedSection delay={0}>
                 <p style={{ fontSize: '13px', color: '#AEAEB2', fontWeight: '600', marginBottom: '16px' }}>
                   {jobs.length} oglasa
@@ -274,7 +274,7 @@ export default function StudentJobs() {
             </div>
 
             {/* Detalji */}
-            <div style={{ position: 'sticky', top: '20px', alignSelf: 'flex-start' }}>
+            <div className={!selectedJob ? 'mobile-hidden' : ''} style={{ position: 'sticky', top: '20px', alignSelf: 'flex-start' }}>
               {!selectedJob ? (
                 <AnimatedScale>
                   <div style={{ background: '#FDFCF9', borderRadius: '20px', padding: '64px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -285,6 +285,16 @@ export default function StudentJobs() {
               ) : (
                 <AnimatedSection direction="left" delay={0}>
                   <div style={{ background: '#FDFCF9', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+
+                    {/* Mobilni: nazad na listu */}
+                    <button onClick={() => setSelectedJob(null)} className="lg:hidden" style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '12px 16px', background: '#FDFCF9', border: 'none',
+                      borderBottom: '1px solid rgba(0,0,0,0.06)',
+                      color: '#FF6B35', fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+                    }}>
+                      ← Nazad na listu
+                    </button>
 
                     {/* Job header */}
                     <div style={{

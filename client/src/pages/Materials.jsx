@@ -611,13 +611,22 @@ export default function Materials() {
 
           {/* Detail panel */}
           {selectedMaterial && (
-            <div style={{
+            <div className="materials-detail-panel" style={{
               width: '280px', flexShrink: 0, padding: '24px 20px',
               borderLeft: '1px solid rgba(0,0,0,0.06)',
               overflowY: 'auto', background: '#FDFCF9',
               animation: 'fadeSlideLeft 0.25s ease both',
             }}>
               <style>{`@keyframes fadeSlideLeft { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:translateX(0) } }`}</style>
+
+              {/* Mobilni: zatvori detalj */}
+              <button onClick={() => setSelectedMaterial(null)} className="lg:hidden" style={{
+                display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px',
+                background: 'none', border: 'none', color: '#FF6B35',
+                fontWeight: 700, fontSize: '14px', cursor: 'pointer', padding: 0,
+              }}>
+                ← Nazad na materijale
+              </button>
 
               {/* File preview */}
               <div style={{
