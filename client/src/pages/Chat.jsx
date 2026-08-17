@@ -304,14 +304,23 @@ export default function Chat() {
 
   const isFileMessage = (msg) => msg.fileType === 'file' || msg.fileType === 'image'
 
+  // Mobilni: vrati se sa razgovora na listu konverzacija
+  const backToList = () => {
+    const socket = getSocket()
+    if (socket && activeConvRef.current?.id) socket.emit('leave_conversation', activeConvRef.current.id)
+    activeConvRef.current = null
+    setActiveConversation(null)
+    setActiveConversationId(null)
+  }
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
+    <div className="h-[calc(100dvh-7.5rem)] lg:h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes scaleIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }`}</style>
 
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Sidebar konverzacija ───────────────────────────────── */}
-        <div className="w-80 flex flex-col flex-shrink-0 overflow-hidden"
+        <div className={`${activeConversation ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 flex-col flex-shrink-0 overflow-hidden`}
           style={{ background: '#1C1C1E', borderRight: '1px solid #2C2C2E' }}>
 
           <div className="px-5 py-5 flex items-center justify-between flex-shrink-0"
@@ -424,7 +433,7 @@ export default function Chat() {
         </div>
 
         {/* ── Chat area ─────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={`${activeConversation || chatBlocked ? 'flex' : 'hidden lg:flex'} flex-1 flex-col overflow-hidden`}>
 
           {/* ── Chat Blocked screen ───────────────────────────────── */}
           {chatBlocked && !activeConversation ? (
@@ -541,6 +550,11 @@ export default function Chat() {
                   borderBottom: '1px solid rgba(0,0,0,0.06)',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 }}>
+                <button onClick={backToList} aria-label="Nazad" className="lg:hidden p-1 -ml-1 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="#1C1C1E">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
                 <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                   {getConversationAvatar(activeConversation) ? (
                     <img src={getConversationAvatar(activeConversation)} alt="" className="w-full h-full object-cover" />
