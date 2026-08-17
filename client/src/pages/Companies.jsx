@@ -92,7 +92,7 @@ export default function Companies() {
 
           {/* Search forma */}
           <AnimatedSection delay={0.1} direction="up">
-            <form onSubmit={(e) => { e.preventDefault(); fetchCompanies() }} style={{ display: 'flex', gap: '10px' }}>
+            <form onSubmit={(e) => { e.preventDefault(); fetchCompanies() }} className="companies-search" style={{ display: 'flex', gap: '10px' }}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}

@@ -79,6 +79,13 @@
     border-bottom: 1px solid rgba(0,0,0,0.06) !important;
     max-height: 240px;
   }
+  /* Companies pretraga: search + industrija + dugme se slazu vertikalno (ne stanu u red) */
+  .companies-search {
+    flex-direction: column !important;
+  }
+  .companies-search > * {
+    width: 100% !important;
+  }
 }
 
 /* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */
