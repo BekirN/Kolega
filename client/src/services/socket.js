@@ -1,5 +1,8 @@
 import { io } from 'socket.io-client'
 
+// Socket URL se izvlaci iz VITE_API_URL (bez /api), da radi i s telefona/deploya
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
+
 let socket = null
 let isInitialized = false
 
@@ -14,7 +17,7 @@ export const initSocket = () => {
     socket.disconnect()
   }
 
-  socket = io('http://localhost:5000', {
+  socket = io(SOCKET_URL, {
     auth: (cb) => cb({ token: localStorage.getItem('token') }),
     reconnection: true,
     reconnectionAttempts: Infinity,

@@ -7,4 +7,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: true, // izlozi dev server na lokalnu mrezu (za testiranje s telefona)
+  },
 })
