@@ -24,14 +24,27 @@ const server = http.createServer(app)
 
 const connectionRoutes = require('./routes/connections')
 
+// Dozvoljeni origini: CLIENT_URL moze biti lista odvojena zarezom
+// (npr. "http://localhost:5173,http://localhost:4173,https://kolega.app")
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
+const corsOrigin = (origin, callback) => {
+  // dozvoli zahtjeve bez origin-a (npr. mobilne aplikacije, curl) i one sa liste
+  if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+  return callback(new Error('CORS: origin nije dozvoljen'))
+}
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigins,
     methods: ['GET', 'POST']
   }
 })
 
-app.use(cors({ origin: process.env.CLIENT_URL }))
+app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 const authLimiter = rateLimit({
