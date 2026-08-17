@@ -168,7 +168,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobilni top bar (samo < lg) */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-4"
+      <header className="mobile-topbar lg:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-4"
         style={{ background: '#1C1C1E' }}>
         <button onClick={() => setMobileOpen(true)} aria-label="Otvori meni" className="p-2 -ml-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="#E5E5EA">
@@ -491,7 +491,7 @@ export default function Sidebar() {
       </div>
 
       {/* Mobilni donji tab-bar (samo < lg) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch"
+      <nav className="mobile-bottomnav lg:hidden fixed bottom-0 left-0 right-0 z-40 flex items-stretch"
         style={{ background: '#1C1C1E', borderTop: '1px solid #2C2C2E', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {[
           { label: 'Početna', path: '/dashboard', onClick: () => navigate('/dashboard'),

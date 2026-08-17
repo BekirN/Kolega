@@ -53,6 +53,21 @@
   }
 }
 
+/* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */
+@media (max-width: 1023px) {
+  body.chat-fullscreen .mobile-topbar,
+  body.chat-fullscreen .mobile-bottomnav {
+    display: none !important;
+  }
+  body.chat-fullscreen main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  body.chat-fullscreen .chat-root {
+    height: 100dvh !important;
+  }
+}
+
 :root {
   --bg-page: #E2DDD6;
   --bg-card: #EEEBE5;

@@ -304,6 +304,13 @@ export default function Chat() {
 
   const isFileMessage = (msg) => msg.fileType === 'file' || msg.fileType === 'image'
 
+  // Mobilni: kad je razgovor otvoren -> puni ekran (sakrij app top bar i tab-bar)
+  useEffect(() => {
+    if (activeConversation) document.body.classList.add('chat-fullscreen')
+    else document.body.classList.remove('chat-fullscreen')
+    return () => document.body.classList.remove('chat-fullscreen')
+  }, [activeConversation])
+
   // Mobilni: vrati se sa razgovora na listu konverzacija
   const backToList = () => {
     const socket = getSocket()
@@ -314,7 +321,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="h-[calc(100dvh-7.5rem)] lg:h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
+    <div className="chat-root h-[calc(100dvh-7.5rem)] lg:h-screen flex flex-col overflow-hidden" style={{ background: '#EFEDE8' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes scaleIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }`}</style>
 
       <div className="flex flex-1 overflow-hidden">
