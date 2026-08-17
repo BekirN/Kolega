@@ -45,7 +45,6 @@ model User {
   eventAttendees      EventAttendee[]
   sentMessages        Message[]          @relation("SentMessages")
   conversations       ConversationParticipant[]
-  notifications       Notification[]
 
   uploadedMaterials  Material[]       @relation("UploadedMaterials")
   materialSaves      MaterialSave[]
@@ -504,37 +503,6 @@ model ConversationRead {
 
   @@unique([conversationId, userId])
 }
-
-// ================================
-// NOTIFIKACIJE
-// ================================
-
-model Notification {
-  id        String           @id @default(uuid())
-  type      NotificationType
-  message   String
-  isRead    Boolean          @default(false)
-  link      String?
-
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime         @default(now())
-  @@index([userId, createdAt])
-}
-
-enum NotificationType {
-  BOOKING_REQUEST
-  BOOKING_CONFIRMED
-  BOOKING_CANCELLED
-  NEW_MESSAGE
-  VERIFICATION_APPROVED
-  VERIFICATION_REJECTED
-  NEW_REVIEW
-  GENERAL
-}
-
-
 
 //CONNECTION
 
