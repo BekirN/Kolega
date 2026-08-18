@@ -110,8 +110,18 @@
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
+  /* Zakljucaj skrol stranice da auto-scroll poruka ne pomjeri cijeli chat gore */
+  body.chat-fullscreen {
+    overflow: hidden !important;
+  }
+  /* Prikuj chat na viewport: header ostaje na vrhu, skroluju se samo poruke */
   body.chat-fullscreen .chat-root {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     height: 100dvh !important;
+    z-index: 50 !important;
   }
   /* Sigurna zona: header ispod statusne trake/notcha, input iznad home indikatora */
   body.chat-fullscreen .chat-conv-header {
