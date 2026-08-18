@@ -165,7 +165,7 @@ export default function Dashboard() {
             <h1 style={{
               fontSize: 'clamp(32px, 4vw, 52px)',
               fontWeight: '900', color: 'white',
-              letterSpacing: '-0.03em', lineHeight: 1.05,
+              letterSpacing: '-0.03em', lineHeight: 1.15,
               marginBottom: '10px',
             }}>
               {greeting}, {' '}
@@ -197,7 +197,7 @@ export default function Dashboard() {
         </AnimatedSection>
 
         {/* BENTO GRID */}
-        <div style={{
+        <div className="bento-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(6, 1fr)',
           gridTemplateRows: 'auto',
@@ -280,7 +280,7 @@ export default function Dashboard() {
           </AnimatedScale>
 
           {/* Studentski poslovi – LARGE (6 kolona – cijeli red) */}
-          <AnimatedScale delay={0.3} style={{ gridColumn: 'span 6' }}>
+          <AnimatedScale delay={0.3} className="bento-span-full" style={{ gridColumn: 'span 6' }}>
             <BentoCard
               module={MODULES[5]}
               hovered={hoveredCard === MODULES[5].path}
@@ -343,6 +343,7 @@ const BentoCard = forwardRef(({
   return (
     <div
       ref={ref}
+      className="bento-card"
       onClick={() => navigate(module.path)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -453,7 +454,7 @@ const BentoCard = forwardRef(({
           </div>
         </div>
 
-        <p style={{
+        <p className="bento-desc" style={{
           color: '#8E8E93', fontSize: '12px', marginBottom: '12px',
           display: wide ? 'block' : '-webkit-box',
           WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',

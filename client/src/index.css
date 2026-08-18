@@ -86,6 +86,28 @@
   .companies-search > * {
     width: 100% !important;
   }
+  /* Home bento grid: 6 kolona (desktop) -> 2 na mobilnom, kartice ne stisnute */
+  .bento-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .bento-grid > * {
+    grid-column: span 1 !important;
+  }
+  /* Puno-siroka kartica (wide raspored) treba obje kolone da se tekst ne urusi */
+  .bento-grid > .bento-span-full {
+    grid-column: span 2 !important;
+  }
+  /* Kartice fleksibilne visine da tekst ne bude odsjecen na uskim karticama */
+  .bento-card {
+    height: auto !important;
+    min-height: 150px;
+  }
+  /* Opis modula: dozvoli 3 linije umjesto 1 (dugi opisi na uskim karticama) */
+  .bento-desc {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+  }
 }
 
 /* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */
