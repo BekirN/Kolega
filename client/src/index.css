@@ -122,6 +122,20 @@
   }
 }
 
+/* Chat "Detalji" panel (slike/fajlovi): na mobilnom full-screen overlay umjesto uskog 300px panela sa strane */
+@media (max-width: 1023px) {
+  .chat-details-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    z-index: 70 !important;
+    border-left: none !important;
+  }
+  .chat-details-header {
+    padding-top: calc(env(safe-area-inset-top) + 16px) !important;
+  }
+}
+
 :root {
   --bg-page: #E2DDD6;
   --bg-card: #EEEBE5;

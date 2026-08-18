@@ -46,7 +46,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
   if (!conversation) return null
 
   return (
-    <div style={{
+    <div className="chat-details-panel" style={{
       width: '300px', flexShrink: 0,
       background: '#FDFCF9',
       borderLeft: '1px solid rgba(0,0,0,0.06)',
@@ -55,7 +55,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
     }}>
 
       {/* Header */}
-      <div style={{
+      <div className="chat-details-header" style={{
         padding: '16px 20px',
         borderBottom: '1px solid rgba(0,0,0,0.06)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
