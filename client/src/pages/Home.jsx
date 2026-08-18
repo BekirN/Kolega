@@ -296,6 +296,40 @@ export default function Dashboard() {
           </AnimatedScale>
         </div>
 
+        {/* Mobilni raspored modula – jednostavan, tekst uvijek staje u cijelosti */}
+        <div className="mobile-modules" style={{ flexDirection: 'column', gap: '12px' }}>
+          {MODULES.map((m) => (
+            <div
+              key={m.path}
+              onClick={() => navigate(m.path)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                background: '#FDFCF9', borderRadius: '18px', padding: '16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: '52px', height: '52px', borderRadius: '14px', flexShrink: 0,
+                background: m.gradient, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', fontSize: '26px',
+              }}>
+                {m.emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 800, fontSize: '16px', color: '#1C1C1E', margin: 0 }}>
+                  {m.label}
+                </p>
+                <p style={{ fontSize: '13px', color: '#8E8E93', margin: '3px 0 0', lineHeight: 1.35 }}>
+                  {m.description}
+                </p>
+              </div>
+              <span style={{ color: m.accentColor, fontSize: '22px', fontWeight: 700, flexShrink: 0 }}>
+                ›
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* Stats bar */}
         <AnimatedSection delay={0.35} direction="up" style={{ marginTop: '20px' }}>
           <div className="stack-mobile" style={{
