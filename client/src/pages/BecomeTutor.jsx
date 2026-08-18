@@ -141,7 +141,7 @@ export default function BecomeTutor() {
 
       {/* Form */}
       <div style={{ maxWidth: '600px', margin: '0 auto', padding: '28px 32px 48px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
           {/* Forma */}
           <div style={{ gridColumn: 'span 2' }}>
@@ -310,7 +310,7 @@ export default function BecomeTutor() {
                       </div>
 
                       {/* Preporučene cijene */}
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
                         <p style={{ fontSize: '12px', color: '#AEAEB2', marginRight: '4px', alignSelf: 'center' }}>
                           Preporučeno:
                         </p>
@@ -446,7 +446,7 @@ export default function BecomeTutor() {
             <p style={{ fontSize: '13px', fontWeight: '800', color: '#7C3AED', marginBottom: '12px' }}>
               💡 Savjeti za uspješan tutor profil
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {[
                 { icon: '✍️', tip: 'Napiši detaljan bio o svom iskustvu' },
                 { icon: '📚', tip: 'Dodaj sve predmete u kojima si dobar' },

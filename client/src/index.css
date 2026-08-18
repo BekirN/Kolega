@@ -57,6 +57,10 @@
   .stack-mobile {
     grid-template-columns: minmax(0, 1fr) !important;
   }
+  /* Djeca ne smiju zadrzati 'span 2' iz desktop rasporeda (napravilo bi implicitnu 2. kolonu) */
+  .stack-mobile > * {
+    grid-column: auto !important;
+  }
   /* Liste kartica: 3 kolone -> 2 na mobilnom (citljivije, marketplace gustina) */
   .grid-2col-mobile {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
