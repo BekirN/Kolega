@@ -741,7 +741,7 @@ export default function Profile() {
                   Uredi profil ✏️
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '6px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ime</label>
                       <input style={inputStyle} value={formData.firstName}
@@ -768,7 +768,7 @@ export default function Profile() {
                       onBlur={e => e.target.style.borderColor = '#E8E4DF'} />
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#6B7280', marginBottom: '6px', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Univerzitet</label>
                       <input style={inputStyle} value={formData.university}
