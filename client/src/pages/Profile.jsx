@@ -26,6 +26,17 @@ export default function Profile() {
   const [indexUploading, setIndexUploading] = useState(false)
   const [verificationMsg, setVerificationMsg] = useState('')
   const indexInputRef = useRef(null)
+  const editFormRef = useRef(null)
+
+  // Klik na "Uredi profil" -> skrol pravo na formu (bez rucnog skrolanja)
+  useEffect(() => {
+    if (editing) {
+      const t = setTimeout(() => {
+        editFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 60)
+      return () => clearTimeout(t)
+    }
+  }, [editing])
 
   const refreshConnectionStatus = async () => {
     if (!isOwnProfile && id) {
@@ -388,7 +399,7 @@ export default function Profile() {
         <div className="profile-header-row" style={{
           marginTop: '-56px', marginBottom: '28px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
+          <div className="profile-identity" style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
 
             {/* Avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -732,10 +743,11 @@ export default function Profile() {
 
             {/* Edit forma */}
             {editing && isOwnProfile && (
-              <div style={{
+              <div ref={editFormRef} style={{
                 background: '#FDFCF9', borderRadius: '20px', padding: '24px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                 border: '2px solid rgba(255,107,53,0.2)',
+                scrollMarginTop: '70px',
               }}>
                 <h3 style={{ fontWeight: '800', color: '#1C1C1E', fontSize: '17px', marginBottom: '20px' }}>
                   Uredi profil ✏️

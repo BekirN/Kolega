@@ -52,6 +52,12 @@
     align-items: flex-start;
     gap: 16px;
   }
+  /* Avatar iznad, ime+badz ispod (u svijetloj zoni, ne preko tamnog cover banera) */
+  .profile-identity {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
   /* Grid-ovi sa fiksnim px bocnim stupcem -> jedna kolona na mobilnom.
      minmax(0,1fr) dozvoljava koloni da se skupi ispod velicine sadrzaja (bez prelijevanja) */
   .stack-mobile {
