@@ -551,7 +551,7 @@ export default function Chat() {
           ) : (
             <>
               {/* Chat header */}
-              <div className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
+              <div className="chat-conv-header flex items-center gap-4 px-6 py-4 flex-shrink-0"
                 style={{
                   background: '#FDFCF9',
                   borderBottom: '1px solid rgba(0,0,0,0.06)',
@@ -745,7 +745,7 @@ export default function Chat() {
                   )}
 
                   {/* Input area */}
-                  <div className="px-5 py-4 flex-shrink-0"
+                  <div className="chat-input-bar px-5 py-4 flex-shrink-0"
                     style={{ background: '#FDFCF9', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                     <form onSubmit={handleSend} className="flex items-center gap-3">
                       <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden"

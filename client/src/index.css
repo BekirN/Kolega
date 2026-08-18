@@ -113,6 +113,13 @@
   body.chat-fullscreen .chat-root {
     height: 100dvh !important;
   }
+  /* Sigurna zona: header ispod statusne trake/notcha, input iznad home indikatora */
+  body.chat-fullscreen .chat-conv-header {
+    padding-top: calc(env(safe-area-inset-top) + 1rem) !important;
+  }
+  body.chat-fullscreen .chat-input-bar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem) !important;
+  }
 }
 
 :root {
