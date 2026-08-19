@@ -118,6 +118,10 @@
     padding: 20px 16px !important;
     min-width: 0 !important;
     overflow-wrap: anywhere;
+    /* Inline overflowY:auto je forsirao overflowX na auto (vlastiti horiz. skrol).
+       visible uklanja interni scroll -> korijen (overflow-x:hidden) preuzima kontrolu,
+       a stranica skroluje vertikalno prirodno (body). */
+    overflow: visible !important;
   }
   /* Layout: sidebar + sadrzaj se slazu vertikalno */
   .admin-layout {
