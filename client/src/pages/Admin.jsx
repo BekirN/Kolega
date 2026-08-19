@@ -319,7 +319,7 @@ export default function Admin() {
               <h2 style={{ fontSize: '22px', fontWeight: '900', marginBottom: '24px', color: 'white' }}>
                 📊 Statistike platforme
               </h2>
-              <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+              <div className="grid-2col-mobile admin-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
                 {[
                   { label: 'Ukupno korisnika', value: stats.users.total, icon: '👥', color: '#FF6B35' },
                   { label: 'Email verifikovani', value: stats.users.verified, icon: '✅', color: '#16A34A' },
@@ -333,7 +333,7 @@ export default function Admin() {
                 ))}
               </div>
               <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#636366', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sadržaj</h3>
-              <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
+              <div className="grid-2col-mobile admin-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
                 {[
                   { label: 'Shop', value: stats.content.shopItems, icon: '🛍️' },
                   { label: 'Stanovi', value: stats.content.housingListings, icon: '🏠' },
