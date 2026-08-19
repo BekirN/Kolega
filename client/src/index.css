@@ -108,6 +108,44 @@
   .mobile-modules {
     display: flex !important;
   }
+
+  /* ─── Admin panel ─── */
+  /* Zaglavlje i sadrzaj: manji bocni razmaci na telefonu */
+  .admin-header {
+    padding: 14px 16px !important;
+  }
+  .admin-content {
+    padding: 20px 16px !important;
+  }
+  /* Layout: sidebar + sadrzaj se slazu vertikalno */
+  .admin-layout {
+    flex-direction: column !important;
+  }
+  /* Sidebar (200px vertikalni) -> horizontalna traka tabova koja se skroluje */
+  .admin-sidebar {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 8px;
+    padding: 10px 12px !important;
+    border-right: none !important;
+    border-bottom: 1px solid #3A3A3C !important;
+  }
+  .admin-sidebar > button {
+    width: auto !important;
+    flex-shrink: 0 !important;
+    margin-bottom: 0 !important;
+    white-space: nowrap !important;
+  }
+  /* Toolbar (naslov + pretraga): slaganje i puna sirina pretrage */
+  .admin-toolbar {
+    flex-wrap: wrap !important;
+  }
+  .admin-search {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
 }
 
 /* Chat u punom ekranu na mobilnom: sakrij app chrome, chat preuzima cijeli ekran */

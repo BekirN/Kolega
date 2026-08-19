@@ -255,7 +255,7 @@ export default function Admin() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
-      <div style={{
+      <div className="admin-header" style={{
         background: '#2C2C2E', borderBottom: '1px solid #3A3A3C',
         padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -283,10 +283,10 @@ export default function Admin() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', minHeight: 'calc(100vh - 69px)' }}>
+      <div className="admin-layout" style={{ display: 'flex', minHeight: 'calc(100vh - 69px)' }}>
 
         {/* Sidebar */}
-        <div style={{
+        <div className="admin-sidebar" style={{
           width: '200px', background: '#2C2C2E',
           borderRight: '1px solid #3A3A3C', padding: '20px 12px', flexShrink: 0,
         }}>
@@ -311,7 +311,7 @@ export default function Admin() {
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, padding: '28px 32px', overflowY: 'auto' }}>
+        <div className="admin-content" style={{ flex: 1, padding: '28px 32px', overflowY: 'auto' }}>
 
           {/* ─── DASHBOARD ─── */}
           {activeTab === 'dashboard' && stats && (
@@ -319,7 +319,7 @@ export default function Admin() {
               <h2 style={{ fontSize: '22px', fontWeight: '900', marginBottom: '24px', color: 'white' }}>
                 📊 Statistike platforme
               </h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+              <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
                 {[
                   { label: 'Ukupno korisnika', value: stats.users.total, icon: '👥', color: '#FF6B35' },
                   { label: 'Email verifikovani', value: stats.users.verified, icon: '✅', color: '#16A34A' },
@@ -333,7 +333,7 @@ export default function Admin() {
                 ))}
               </div>
               <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#636366', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sadržaj</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
+              <div className="grid-2col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
                 {[
                   { label: 'Shop', value: stats.content.shopItems, icon: '🛍️' },
                   { label: 'Stanovi', value: stats.content.housingListings, icon: '🏠' },
@@ -387,11 +387,12 @@ export default function Admin() {
           {/* ─── KORISNICI ─── */}
           {activeTab === 'users' && (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div className="admin-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'white', margin: 0 }}>
                   👥 Korisnici ({users.length})
                 </h2>
                 <input
+                  className="admin-search"
                   value={userSearch}
                   onChange={e => { setUserSearch(e.target.value); fetchUsers(e.target.value) }}
                   placeholder="🔍 Pretraži..."
@@ -821,7 +822,7 @@ export default function Admin() {
           {activeTab === 'notify' && (
             <div>
               <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'white', marginBottom: '24px' }}>📢 Obavještenja i emailovi</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="stack-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ background: '#2C2C2E', borderRadius: '18px', padding: '24px', border: '1px solid #3A3A3C' }}>
                   <h3 style={{ color: 'white', fontWeight: '800', marginBottom: '6px', fontSize: '16px' }}>🔔 Sistemska notifikacija</h3>
                   <p style={{ color: '#636366', fontSize: '13px', marginBottom: '18px' }}>Pojavljuje se u Activity panelu svih korisnika</p>
