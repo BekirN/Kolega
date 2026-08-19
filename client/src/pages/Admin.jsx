@@ -358,7 +358,7 @@ export default function Admin() {
               <div style={{ background: '#2C2C2E', borderRadius: '16px', border: '1px solid #3A3A3C', overflow: 'hidden' }}>
                 {stats.recentUsers.map((u, i) => (
                   <div key={u.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px',
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', flexWrap: 'wrap',
                     borderBottom: i < stats.recentUsers.length - 1 ? '1px solid #3A3A3C' : 'none',
                   }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
@@ -367,7 +367,7 @@ export default function Admin() {
                         : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #FF6B35, #FFB800)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '13px' }}>{u.firstName?.[0]}{u.lastName?.[0]}</div>
                       }
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontWeight: '700', color: 'white', fontSize: '14px', margin: 0 }}>{u.firstName} {u.lastName}</p>
                       <p style={{ color: '#636366', fontSize: '12px', margin: 0 }}>{u.email}</p>
                     </div>
@@ -405,7 +405,7 @@ export default function Admin() {
                   <div style={{ padding: '40px', textAlign: 'center', color: '#636366' }}>Učitavanje...</div>
                 ) : users.map((u, i) => (
                   <div key={u.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px',
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', flexWrap: 'wrap',
                     borderBottom: i < users.length - 1 ? '1px solid #3A3A3C' : 'none',
                     opacity: actionLoading === u.id ? 0.5 : 1,
                   }}>
@@ -445,7 +445,7 @@ export default function Admin() {
                     </div>
 
                     {/* Akcije */}
-                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
                       {!u.emailVerified && (
                         <button onClick={() => handleVerifyUser(u.id)} style={btn('#16A34A')}>
                           ✉️ Verificiraj
@@ -543,7 +543,7 @@ export default function Admin() {
                       border: '1px solid #3A3A3C',
                     }}>
                       {/* Company header */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                         <div>
                           <h3 style={{ color: 'white', fontWeight: '800', fontSize: '16px', margin: 0, marginBottom: '4px' }}>
                             {company.name}
@@ -702,7 +702,7 @@ export default function Admin() {
           {activeTab === 'content' && (
             <div>
               <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'white', marginBottom: '20px' }}>🗂️ Moderacija sadržaja</h2>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 {CONTENT_TABS.map(tab => (
                   <button key={tab.id} onClick={() => setContentType(tab.id)} style={{
                     padding: '8px 16px', borderRadius: '10px', border: 'none',
