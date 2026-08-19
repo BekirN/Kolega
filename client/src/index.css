@@ -116,10 +116,13 @@
   }
   .admin-content {
     padding: 20px 16px !important;
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
   }
   /* Layout: sidebar + sadrzaj se slazu vertikalno */
   .admin-layout {
     flex-direction: column !important;
+    min-width: 0 !important;
   }
   /* Sidebar (200px vertikalni) -> horizontalna traka tabova koja se skroluje */
   .admin-sidebar {
@@ -145,6 +148,20 @@
   .admin-search {
     width: 100% !important;
     flex: 1 1 100% !important;
+  }
+  /* Sigurnosna mreza: nista ne smije izazvati horizontalni skrol/zumiranje */
+  .admin-root {
+    overflow-x: hidden !important;
+  }
+  /* Dugi emailovi/tokeni bez razmaka se prelome umjesto da guraju sirinu */
+  .admin-content p,
+  .admin-content span,
+  .admin-content a,
+  .admin-content h2,
+  .admin-content h3 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    min-width: 0;
   }
 }
 

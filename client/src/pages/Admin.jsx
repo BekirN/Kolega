@@ -251,7 +251,7 @@ export default function Admin() {
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1C1C1E', color: '#E5E5EA' }}>
+    <div className="admin-root" style={{ minHeight: '100vh', background: '#1C1C1E', color: '#E5E5EA' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Header */}
