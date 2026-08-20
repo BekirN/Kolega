@@ -111,8 +111,8 @@ export default function Sidebar() {
       const dy = t.clientY - startY
       // samo jasan horizontalni pokret (da ne reaguje na vertikalni skrol)
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx > 0 && startX < 32 && !mobileOpen) setMobileOpen(true)   // od lijevog ruba udesno -> otvori
-        else if (dx < 0 && mobileOpen) setMobileOpen(false)            // lijevo -> zatvori
+        if (dx > 0 && !mobileOpen) setMobileOpen(true)      // povuci udesno bilo gdje -> otvori
+        else if (dx < 0 && mobileOpen) setMobileOpen(false) // povuci lijevo -> zatvori
       }
       startX = null; startY = null
     }
