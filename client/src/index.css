@@ -131,6 +131,8 @@
   /* Sidebar (200px vertikalni) -> horizontalna traka tabova koja se skroluje */
   .admin-sidebar {
     width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
     display: flex !important;
     flex-direction: row !important;
     overflow-x: auto !important;
@@ -159,9 +161,6 @@
      postaje proporcionalno manje. */
   .admin-root {
     overflow-x: hidden !important;
-    zoom: 0.7;
-    /* nakon zoom 0.7, 100vh/0.7 = puni ekran (da tamna pozadina ne ostavi prazninu) */
-    min-height: calc(100vh / 0.7) !important;
   }
   /* Dugi emailovi/tokeni bez razmaka se prelome umjesto da guraju sirinu */
   .admin-content p,

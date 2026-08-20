@@ -96,6 +96,34 @@ export default function Sidebar() {
   // Zatvori mobilni drawer kad se promijeni ruta
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
+  // Swipe gesta (samo mobilni): povuci od lijevog ruba udesno -> otvori meni; povuci lijevo -> zatvori
+  useEffect(() => {
+    let startX = null, startY = null
+    const onStart = (e) => {
+      if (window.innerWidth >= 1024) return
+      const t = e.touches[0]
+      startX = t.clientX; startY = t.clientY
+    }
+    const onEnd = (e) => {
+      if (startX === null) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - startX
+      const dy = t.clientY - startY
+      // samo jasan horizontalni pokret (da ne reaguje na vertikalni skrol)
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx > 0 && startX < 32 && !mobileOpen) setMobileOpen(true)   // od lijevog ruba udesno -> otvori
+        else if (dx < 0 && mobileOpen) setMobileOpen(false)            // lijevo -> zatvori
+      }
+      startX = null; startY = null
+    }
+    window.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      window.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchend', onEnd)
+    }
+  }, [mobileOpen])
+
   useEffect(() => {
     const fetchCounts = async () => {
       try {
