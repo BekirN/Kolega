@@ -122,9 +122,6 @@
        visible uklanja interni scroll -> korijen (overflow-x:hidden) preuzima kontrolu,
        a stranica skroluje vertikalno prirodno (body). */
     overflow: visible !important;
-    /* Cijeli admin sadrzaj je skaliran za desktop -> smanji da stane na telefon
-       (kao trajni "zoom out"; sve proporcionalno manje) */
-    zoom: 0.8;
   }
   /* Layout: sidebar + sadrzaj se slazu vertikalno */
   .admin-layout {
@@ -157,8 +154,14 @@
     flex: 1 1 100% !important;
   }
   /* Sigurnosna mreza: nista ne smije izazvati horizontalni skrol/zumiranje */
+  /* zoom: cijeli admin panel je skaliran za desktop -> smanji da stane na telefon.
+     Na korijenu (obican blok) radi pouzdano; sve unutra (header, tabovi, kartice)
+     postaje proporcionalno manje. */
   .admin-root {
     overflow-x: hidden !important;
+    zoom: 0.7;
+    /* nakon zoom 0.7, 100vh/0.7 = puni ekran (da tamna pozadina ne ostavi prazninu) */
+    min-height: calc(100vh / 0.7) !important;
   }
   /* Dugi emailovi/tokeni bez razmaka se prelome umjesto da guraju sirinu */
   .admin-content p,
