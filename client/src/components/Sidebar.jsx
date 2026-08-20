@@ -96,22 +96,32 @@ export default function Sidebar() {
   // Zatvori mobilni drawer kad se promijeni ruta
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
-  // Swipe gesta (samo mobilni): povuci od lijevog ruba udesno -> otvori meni; povuci lijevo -> zatvori
+  // Swipe gesta (samo mobilni): povuci udesno -> otvori meni; povuci lijevo -> zatvori.
+  // Ignoriši ako gesta kreće unutar horizontalno-skrolabilnog elementa (npr. traka tabova, galerija).
   useEffect(() => {
-    let startX = null, startY = null
+    let startX = null, startY = null, ignore = false
+    const startsInHScroll = (el) => {
+      while (el && el !== document.body && el.nodeType === 1) {
+        const ox = getComputedStyle(el).overflowX
+        if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 4) return true
+        el = el.parentElement
+      }
+      return false
+    }
     const onStart = (e) => {
       if (window.innerWidth >= 1024) return
       const t = e.touches[0]
       startX = t.clientX; startY = t.clientY
+      ignore = startsInHScroll(e.target)
     }
     const onEnd = (e) => {
-      if (startX === null) return
+      if (startX === null || ignore) { startX = null; return }
       const t = e.changedTouches[0]
       const dx = t.clientX - startX
       const dy = t.clientY - startY
       // samo jasan horizontalni pokret (da ne reaguje na vertikalni skrol)
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx > 0 && !mobileOpen) setMobileOpen(true)      // povuci udesno bilo gdje -> otvori
+        if (dx > 0 && !mobileOpen) setMobileOpen(true)      // povuci udesno -> otvori
         else if (dx < 0 && mobileOpen) setMobileOpen(false) // povuci lijevo -> zatvori
       }
       startX = null; startY = null
