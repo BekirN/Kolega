@@ -65,7 +65,7 @@ export default function Admin() {
     if (q.trim().length < 2) { setMemberResults([]); return }
     try {
       const { data } = await api.get(`/admin/users?search=${encodeURIComponent(q)}&limit=8`)
-      setMemberResults(data)
+      setMemberResults(data.users || [])
     } catch { setMemberResults([]) }
   }
   const selectMember = (u) => {
