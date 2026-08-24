@@ -56,6 +56,30 @@ export default function Admin() {
   const [memberUserId, setMemberUserId] = useState('')
   const [memberRole, setMemberRole] = useState('HR')
   const [memberLoading, setMemberLoading] = useState(false)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberResults, setMemberResults] = useState([])
+  const [memberSelected, setMemberSelected] = useState(null) // izabrani korisnik
+
+  const searchMembers = async (q) => {
+    setMemberSearch(q)
+    if (q.trim().length < 2) { setMemberResults([]); return }
+    try {
+      const { data } = await api.get(`/admin/users?search=${encodeURIComponent(q)}&limit=8`)
+      setMemberResults(data)
+    } catch { setMemberResults([]) }
+  }
+  const selectMember = (u) => {
+    setMemberSelected(u)
+    setMemberUserId(u.id)
+    setMemberResults([])
+    setMemberSearch('')
+  }
+  const clearMemberSelection = () => {
+    setMemberSelected(null)
+    setMemberUserId('')
+    setMemberSearch('')
+    setMemberResults([])
+  }
 
   // Role dropdown state
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
@@ -555,7 +579,7 @@ export default function Admin() {
                           )}
                         </div>
                         <button
-                          onClick={() => { setShowMemberModal(company.id); setMemberUserId(''); setMemberRole('HR') }}
+                          onClick={() => { setShowMemberModal(company.id); setMemberRole('HR'); clearMemberSelection() }}
                           style={btn('#7C3AED')}>
                           + Dodaj člana
                         </button>
@@ -623,23 +647,61 @@ export default function Admin() {
                       Dodaj člana firme
                     </h3>
                     <p style={{ color: '#636366', fontSize: '13px', marginBottom: '20px' }}>
-                      Upiši User ID korisnika koga hoćeš da dodaš
+                      Pretraži korisnika po imenu ili emailu i izaberi ga
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div>
                         <label style={{ fontSize: '12px', color: '#8E8E93', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          User ID *
+                          Korisnik *
                         </label>
-                        <input
-                          value={memberUserId}
-                          onChange={e => setMemberUserId(e.target.value)}
-                          placeholder="npr. abc123-def456..."
-                          style={inputStyle}
-                        />
-                        <p style={{ fontSize: '11px', color: '#636366', marginTop: '6px' }}>
-                          💡 User ID nađeš u URL-u profila: /profile/<strong>USER_ID</strong>
-                        </p>
+
+                        {memberSelected ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#1C1C1E', borderRadius: '10px', border: '1px solid #7C3AED' }}>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                              {memberSelected.profileImage
+                                ? <img src={memberSelected.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#7C3AED,#A855F7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 13 }}>{memberSelected.firstName?.[0]}{memberSelected.lastName?.[0]}</div>}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ color: 'white', fontWeight: 700, fontSize: 14, margin: 0 }}>{memberSelected.firstName} {memberSelected.lastName}</p>
+                              <p style={{ color: '#636366', fontSize: 12, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{memberSelected.email}</p>
+                            </div>
+                            <button type="button" onClick={clearMemberSelection} style={{ background: '#3A3A3C', border: 'none', color: '#8E8E93', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Promijeni</button>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              value={memberSearch}
+                              onChange={e => searchMembers(e.target.value)}
+                              placeholder="🔍 Ime ili email korisnika..."
+                              style={inputStyle}
+                            />
+                            {memberResults.length > 0 && (
+                              <div style={{ marginTop: '6px', background: '#1C1C1E', borderRadius: '10px', border: '1px solid #3A3A3C', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                                {memberResults.map(u => (
+                                  <button key={u.id} type="button" onClick={() => selectMember(u)}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid #2C2C2E', cursor: 'pointer', textAlign: 'left' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#2C2C2E'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                                      {u.profileImage
+                                        ? <img src={u.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#FF6B35,#FFB800)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 12 }}>{u.firstName?.[0]}{u.lastName?.[0]}</div>}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <p style={{ color: 'white', fontWeight: 600, fontSize: 13, margin: 0 }}>{u.firstName} {u.lastName}</p>
+                                      <p style={{ color: '#636366', fontSize: 11, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email} · {u.role}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {memberSearch.trim().length >= 2 && memberResults.length === 0 && (
+                              <p style={{ fontSize: '12px', color: '#636366', marginTop: '8px' }}>Nema rezultata za "{memberSearch}"</p>
+                            )}
+                          </>
+                        )}
                       </div>
 
                       <div>
