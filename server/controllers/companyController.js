@@ -3,7 +3,9 @@ const { createActivity } = require('../utils/activityHelper')
 const { sendNewInternshipEmail } = require('../config/mailgun')
 const getCompanies = async (req, res) => {
   try {
-    const { search, industry, city } = req.query
+    const { search, industry, city, page = 1, limit = 12 } = req.query
+    const { getPagination } = require('../utils/pagination')
+    const { skip, take } = getPagination(req.query)
     const filters = { deletedAt: null }
 
     if (search) {
@@ -24,7 +26,9 @@ const getCompanies = async (req, res) => {
         },
         _count: { select: { reviews: true } }
       },
-      orderBy: { averageRating: 'desc' }
+      orderBy: { averageRating: 'desc' },
+      skip,
+      take,
     })
 
     res.json(companies)

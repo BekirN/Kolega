@@ -4,7 +4,9 @@ const { sendBookingConfirmationEmail } = require('../config/mailgun')
 
 const getTutors = async (req, res) => {
   try {
-    const { search } = req.query
+    const { search, page = 1, limit = 12 } = req.query
+    const { getPagination } = require('../utils/pagination')
+    const { skip, take } = getPagination(req.query)
 
     const filters = { isActive: true }
 
@@ -35,7 +37,9 @@ const getTutors = async (req, res) => {
         reviews: { select: { rating: true } },
         _count: { select: { bookings: true } }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     })
 
     const tutorsWithRating = tutors.map(tutor => {

@@ -8,29 +8,36 @@ const SIZE_LABELS = { SMALL: '1–50', MEDIUM: '51–200', LARGE: '200+' }
 
 export default function Companies() {
   const navigate = useNavigate()
+  const PAGE_SIZE = 12
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const [search, setSearch] = useState('')
   const [industry, setIndustry] = useState('')
   const [myCompanies, setMyCompanies] = useState([])
 
   useEffect(() => {
-    fetchCompanies()
+    fetchCompanies(true)
     fetchMyCompanies()
   }, [])
 
-  const fetchCompanies = async () => {
-    setLoading(true)
+  const fetchCompanies = async (reset = true) => {
+    const nextPage = reset ? 1 : page + 1
+    reset ? setLoading(true) : setLoadingMore(true)
     try {
-      const filters = {}
+      const filters = { page: nextPage, limit: PAGE_SIZE }
       if (search) filters.search = search
       if (industry) filters.industry = industry
       const data = await getCompanies(filters)
-      setCompanies(data)
+      setCompanies(prev => reset ? data : [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+      setPage(nextPage)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      reset ? setLoading(false) : setLoadingMore(false)
     }
   }
 
@@ -92,7 +99,7 @@ export default function Companies() {
 
           {/* Search forma */}
           <AnimatedSection delay={0.1} direction="up">
-            <form onSubmit={(e) => { e.preventDefault(); fetchCompanies() }} className="companies-search" style={{ display: 'flex', gap: '10px' }}>
+            <form onSubmit={(e) => { e.preventDefault(); fetchCompanies(true) }} className="companies-search" style={{ display: 'flex', gap: '10px' }}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -357,6 +364,21 @@ export default function Companies() {
                 </div>
               </AnimatedSection>
             ))}
+            {hasMore && (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+                <button onClick={() => fetchCompanies(false)} disabled={loadingMore} style={{
+                  padding: '12px 30px', borderRadius: '14px', border: 'none',
+                  background: loadingMore ? '#3A3A3C' : '#FF6B35',
+                  color: loadingMore ? '#8E8E93' : 'white',
+                  fontSize: '14px', fontWeight: '700', cursor: loadingMore ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}>
+                  {loadingMore
+                    ? <><span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '2px solid #8E8E93', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} /> Učitavam…</>
+                    : 'Učitaj još'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

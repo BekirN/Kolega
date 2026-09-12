@@ -53,6 +53,7 @@ const authLimiter = rateLimit({
   message: { message: 'Previše pokušaja prijave. Pokušaj ponovo za 15 minuta.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
 })
 
 const apiLimiter = rateLimit({
@@ -61,6 +62,7 @@ const apiLimiter = rateLimit({
   message: { message: 'Previše zahtjeva. Pokušaj ponovo za minutu.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
 })
 
 app.use('/api/auth/login', authLimiter)
@@ -210,8 +212,11 @@ app.get('/', async (req, res) => {
 })
 
 const PORT = process.env.PORT || 5000
-server.listen(PORT, () => {
-  console.log(`Server pokrenut na portu ${PORT}`)
-})
+// Ne pokreći server (ni ne zauzimaj port) kada se modul samo importuje u testovima
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Server pokrenut na portu ${PORT}`)
+  })
+}
 
-module.exports = { io }
+module.exports = { app, server, io }

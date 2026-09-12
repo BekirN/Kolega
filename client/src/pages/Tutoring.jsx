@@ -5,23 +5,32 @@ import { AnimatedSection, AnimatedScale, AnimatedBlur } from '../components/Anim
 
 export default function Tutoring() {
   const navigate = useNavigate()
+  const PAGE_SIZE = 12
   const [tutors, setTutors] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const [search, setSearch] = useState('')
 
-  const fetchTutors = async () => {
-    setLoading(true)
+  const fetchTutors = async (reset = true) => {
+    const nextPage = reset ? 1 : page + 1
+    reset ? setLoading(true) : setLoadingMore(true)
     try {
-      const data = await getTutors(search ? { search } : {})
-      setTutors(data)
+      const filters = { page: nextPage, limit: PAGE_SIZE }
+      if (search) filters.search = search
+      const data = await getTutors(filters)
+      setTutors(prev => reset ? data : [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+      setPage(nextPage)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      reset ? setLoading(false) : setLoadingMore(false)
     }
   }
 
-  useEffect(() => { fetchTutors() }, [])
+  useEffect(() => { fetchTutors(true) }, [])
 
   const renderStars = (rating) =>
     Array.from({ length: 5 }, (_, i) => (
@@ -67,7 +76,7 @@ export default function Tutoring() {
           </AnimatedBlur>
 
           <AnimatedSection delay={0.1} direction="up">
-            <form onSubmit={(e) => { e.preventDefault(); fetchTutors() }} style={{ display: 'flex', gap: '10px' }}>
+            <form onSubmit={(e) => { e.preventDefault(); fetchTutors(true) }} style={{ display: 'flex', gap: '10px' }}>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -190,6 +199,21 @@ export default function Tutoring() {
                 </div>
               </AnimatedScale>
             ))}
+            {hasMore && (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
+                <button onClick={() => fetchTutors(false)} disabled={loadingMore} style={{
+                  padding: '12px 30px', borderRadius: '14px', border: 'none',
+                  background: loadingMore ? '#E8E4DF' : '#1C1C1E',
+                  color: loadingMore ? '#8E8E93' : 'white',
+                  fontSize: '14px', fontWeight: '700', cursor: loadingMore ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}>
+                  {loadingMore
+                    ? <><span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '2px solid #8E8E93', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} /> Učitavam…</>
+                    : 'Učitaj još'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -21,28 +21,35 @@ const CATEGORY_EMOJIS = {
 
 export default function Shop() {
   const navigate = useNavigate()
+  const PAGE_SIZE = 12
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('Sve')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
-  const fetchItems = async () => {
-    setLoading(true)
+  const fetchItems = async (reset = true) => {
+    const nextPage = reset ? 1 : page + 1
+    reset ? setLoading(true) : setLoadingMore(true)
     try {
-      const filters = {}
+      const filters = { page: nextPage, limit: PAGE_SIZE }
       if (search) filters.search = search
       if (category !== 'Sve') filters.category = category
       const data = await getShopItems(filters)
-      setItems(data)
+      setItems(prev => reset ? data : [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+      setPage(nextPage)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      reset ? setLoading(false) : setLoadingMore(false)
     }
   }
 
-  useEffect(() => { fetchItems() }, [category])
+  useEffect(() => { fetchItems(true) }, [category])
 
   const handleDelete = async (id) => {
     if (!confirm('Obrisati oglas?')) return
@@ -98,7 +105,7 @@ export default function Shop() {
           </AnimatedBlur>
 
           <AnimatedSection delay={0.1} direction="up">
-            <form onSubmit={(e) => { e.preventDefault(); fetchItems() }} style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+            <form onSubmit={(e) => { e.preventDefault(); fetchItems(true) }} style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
               <div style={{ flex: 1, position: 'relative' }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                   style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#636366' }}>
@@ -259,6 +266,22 @@ export default function Shop() {
                 </AnimatedScale>
               ))}
             </div>
+
+            {hasMore && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '28px' }}>
+                <button onClick={() => fetchItems(false)} disabled={loadingMore} style={{
+                  padding: '12px 30px', borderRadius: '14px', border: 'none',
+                  background: loadingMore ? '#E8E4DF' : '#1C1C1E',
+                  color: loadingMore ? '#8E8E93' : 'white',
+                  fontSize: '14px', fontWeight: '700', cursor: loadingMore ? 'default' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px', transition: 'opacity 0.2s',
+                }}>
+                  {loadingMore
+                    ? <><span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '2px solid #8E8E93', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} /> Učitavam…</>
+                    : 'Učitaj još'}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

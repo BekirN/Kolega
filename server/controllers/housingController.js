@@ -16,8 +16,11 @@ const getListings = async (req, res) => {
   try {
     const {
       type, city, minPrice, maxPrice,
-      furnished, lookingForRoommate, search
+      furnished, lookingForRoommate, search,
+      page = 1, limit = 12
     } = req.query
+    const { getPagination } = require('../utils/pagination')
+    const { skip, take } = getPagination(req.query)
 
     const filters = { isActive: true, deletedAt: null }
 
@@ -49,7 +52,9 @@ const getListings = async (req, res) => {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     })
 
     res.json(listings)

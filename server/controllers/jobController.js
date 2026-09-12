@@ -3,7 +3,9 @@ const { createActivity } = require('../utils/activityHelper')
 const { sendNewJobEmail } = require('../config/mailgun')
 const getJobs = async (req, res) => {
   try {
-    const { type, category, search, isRemote } = req.query
+    const { type, category, search, isRemote, page = 1, limit = 12 } = req.query
+    const { getPagination } = require('../utils/pagination')
+    const { skip, take } = getPagination(req.query)
     const filters = { isActive: true, deletedAt: null }
 
     if (type) filters.type = type
@@ -27,7 +29,9 @@ const getJobs = async (req, res) => {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     })
 
     res.json(jobs)

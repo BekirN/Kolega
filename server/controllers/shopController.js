@@ -14,7 +14,9 @@ const upload = multer({
 // ─── Dohvati sve oglase ───────────────────────────────────────────
 const getItems = async (req, res) => {
   try {
-    const { category, search, minPrice, maxPrice } = req.query
+    const { category, search, minPrice, maxPrice, page = 1, limit = 12 } = req.query
+    const { getPagination } = require('../utils/pagination')
+    const { skip, take } = getPagination(req.query)
 
     const filters = { isAvailable: true, deletedAt: null}
 
@@ -41,7 +43,9 @@ const getItems = async (req, res) => {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     })
 
     res.json(items)

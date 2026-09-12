@@ -28,31 +28,38 @@ const timeAgo = (date) => {
 
 export default function StudentJobs() {
   const navigate = useNavigate()
+  const PAGE_SIZE = 12
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const [activeType, setActiveType] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
   const [search, setSearch] = useState('')
   const [selectedJob, setSelectedJob] = useState(null)
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
-  const fetchJobs = async () => {
-    setLoading(true)
+  const fetchJobs = async (reset = true) => {
+    const nextPage = reset ? 1 : page + 1
+    reset ? setLoading(true) : setLoadingMore(true)
     try {
-      const filters = {}
+      const filters = { page: nextPage, limit: PAGE_SIZE }
       if (activeType) filters.type = activeType
       if (activeCategory) filters.category = activeCategory
       if (search) filters.search = search
       const data = await getJobs(filters)
-      setJobs(data)
+      setJobs(prev => reset ? data : [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+      setPage(nextPage)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      reset ? setLoading(false) : setLoadingMore(false)
     }
   }
 
-  useEffect(() => { fetchJobs() }, [activeType, activeCategory])
+  useEffect(() => { fetchJobs(true) }, [activeType, activeCategory])
 
   const handleDelete = async (id) => {
     if (!confirm('Obrisati oglas?')) return
@@ -118,7 +125,7 @@ export default function StudentJobs() {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && fetchJobs()}
+                onKeyDown={e => e.key === 'Enter' && fetchJobs(true)}
                 placeholder="Pretraži poslove..."
                 style={{
                   flex: 1, padding: '11px 16px', borderRadius: '12px',
@@ -126,7 +133,7 @@ export default function StudentJobs() {
                   fontSize: '14px', outline: 'none',
                 }}
               />
-              <button onClick={fetchJobs} style={{
+              <button onClick={() => fetchJobs(true)} style={{
                 padding: '11px 20px', borderRadius: '12px', border: 'none',
                 background: '#FF6B35', color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
               }}>
@@ -271,6 +278,22 @@ export default function StudentJobs() {
                   </AnimatedSection>
                 ))}
               </div>
+
+              {hasMore && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                  <button onClick={() => fetchJobs(false)} disabled={loadingMore} style={{
+                    padding: '12px 30px', borderRadius: '14px', border: 'none',
+                    background: loadingMore ? '#E8E4DF' : '#1C1C1E',
+                    color: loadingMore ? '#8E8E93' : 'white',
+                    fontSize: '14px', fontWeight: '700', cursor: loadingMore ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                  }}>
+                    {loadingMore
+                      ? <><span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '2px solid #8E8E93', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} /> Učitavam…</>
+                      : 'Učitaj još'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Detalji */}
