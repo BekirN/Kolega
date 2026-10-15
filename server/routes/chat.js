@@ -4,6 +4,7 @@ const {
   getConversations,
   getOrCreateConversation,
   getMessages,
+  getMessageFileDownloadUrl,
   uploadFile,
   upload,
   createGroupChat,
@@ -16,6 +17,7 @@ const { protect } = require('../middleware/auth')
 
 router.get('/conversations', protect, getConversations)
 router.get('/conversations/:conversationId/messages', protect, getMessages)
+router.get('/conversations/:conversationId/messages/:messageId/file', protect, getMessageFileDownloadUrl)
 router.get('/conversations/:conversationId/media', protect, getConversationMedia)
 router.post('/conversations/with/:userId', protect, getOrCreateConversation)
 router.post('/conversations/group', protect, createGroupChat)

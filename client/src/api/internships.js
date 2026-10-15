@@ -1,11 +1,6 @@
 import api from './axios'
 
 // Company
-export const joinCompany = async (companyId, role = 'HR') => {
-  const res = await api.post('/internships/join', { companyId, role })
-  return res.data
-}
-
 export const getMyCompanies = async () => {
   const res = await api.get('/internships/my-companies')
   return res.data
@@ -50,6 +45,11 @@ export const getMyApplications = async () => {
 
 export const getCompanyApplications = async (companyId) => {
   const res = await api.get(`/internships/company/${companyId}/applications`)
+  return res.data
+}
+
+export const getApplicationCvDownload = async (applicationId) => {
+  const res = await api.get(`/internships/applications/${applicationId}/cv`)
   return res.data
 }
 

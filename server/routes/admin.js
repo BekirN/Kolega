@@ -13,6 +13,7 @@ const {
   sendSystemNotification,
   getAllContent,
   getPendingVerifications,  
+  getVerificationIndexImage,
   reviewVerification,  
   assignCompanyMember, removeCompanyMember, getCompaniesForAdmin, getAdminLogs
 } = require('../controllers/adminController')
@@ -31,6 +32,7 @@ router.post('/broadcast', sendBroadcastEmail)
 router.post('/notify', sendSystemNotification)
 
 router.get('/verifications', getPendingVerifications)
+router.get('/verifications/:id/index-image', getVerificationIndexImage)
 router.put('/verifications/:id', reviewVerification)
 
 

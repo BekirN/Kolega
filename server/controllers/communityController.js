@@ -29,7 +29,7 @@ const getPosts = async (req, res) => {
 
     res.json(posts)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -55,7 +55,7 @@ const getPostById = async (req, res) => {
     if (!post) return res.status(404).json({ message: 'Post nije pronađen' })
     res.json(post)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -100,7 +100,7 @@ const createPost = async (req, res) => {
 
     res.status(201).json({ message: 'Objavljeno!', post })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -119,7 +119,7 @@ const deletePost = async (req, res) => {
 
     res.json({ message: 'Post obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -161,7 +161,7 @@ const createComment = async (req, res) => {
 
     res.status(201).json({ message: 'Komentar dodan!', comment })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -179,7 +179,7 @@ const deleteComment = async (req, res) => {
     await prisma.communityComment.delete({ where: { id: req.params.commentId } })
     res.json({ message: 'Komentar obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -192,7 +192,7 @@ const getEvents = async (req, res) => {
     })
     res.json(events)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -215,7 +215,7 @@ const createEvent = async (req, res) => {
 
     res.status(201).json({ message: 'Event kreiran!', event })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -261,7 +261,7 @@ const attendEvent = async (req, res) => {
 
     res.json({ message: 'Prijavljen na event!', attending: true })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

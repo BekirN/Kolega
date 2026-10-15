@@ -20,6 +20,11 @@ export const getConversationMedia = async (conversationId) => {
   return response.data
 }
 
+export const getMessageFileDownloadUrl = async (conversationId, messageId) => {
+  const response = await api.get(`/chat/conversations/${conversationId}/messages/${messageId}/file`)
+  return response.data.url
+}
+
 export const createGroupChat = async (data) => {
   const response = await api.post('/chat/conversations/group', data)
   return response.data

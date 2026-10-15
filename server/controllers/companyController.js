@@ -33,7 +33,7 @@ const getCompanies = async (req, res) => {
 
     res.json(companies)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -58,7 +58,7 @@ const getCompanyById = async (req, res) => {
     if (!company) return res.status(404).json({ message: 'Firma nije pronađena' })
     res.json(company)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -76,7 +76,7 @@ const createCompany = async (req, res) => {
 
     res.status(201).json({ message: 'Firma kreirana!', company })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -115,12 +115,12 @@ const createInternship = async (req, res) => {
         )
       }
     } catch (emailErr) {
-      console.error('Email notifikacija greška:', emailErr)
+      console.error('Company email notification failed:', emailErr.name || 'Unknown')
     }
 
     res.status(201).json({ message: 'Praksa kreirana!', internship })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -187,7 +187,7 @@ const createReview = async (req, res) => {
 
     res.status(201).json({ message: 'Recenzija dodana!', review })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

@@ -400,22 +400,11 @@ export default function ShopItemDetail() {
                 {!isOwner && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     
-                    <a  href={`mailto:${item.seller?.email}`}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                        padding: '12px', borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
-                        color: 'white', fontSize: '14px', fontWeight: '800',
-                        textDecoration: 'none',
-                        boxShadow: '0 4px 16px rgba(255,107,53,0.3)',
-                      }}>
-                      ✉️ Kontaktiraj prodavca
-                    </a>
                     <button
                       onClick={() => navigate(`/chat/${item.sellerId}`)}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                        padding: '12px', borderRadius: '14px', border: 'none',
+                        padding: '12px', borderRadius: '14px',
                         background: '#F5F2ED', color: '#1C1C1E',
                         fontSize: '14px', fontWeight: '700', cursor: 'pointer',
                         border: '1.5px solid rgba(0,0,0,0.08)',

@@ -59,7 +59,7 @@ const getListings = async (req, res) => {
 
     res.json(listings)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -72,7 +72,7 @@ const getListingById = async (req, res) => {
           select: {
             id: true, firstName: true, lastName: true,
             faculty: true, university: true,
-            profileImage: true, email: true
+            profileImage: true
           }
         }
       }
@@ -81,7 +81,7 @@ const getListingById = async (req, res) => {
     if (!listing) return res.status(404).json({ message: 'Oglas nije pronađen' })
     res.json(listing)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -143,7 +143,7 @@ const createListing = async (req, res) => {
 
     res.status(201).json({ message: 'Oglas objavljen!', listing })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -171,7 +171,7 @@ const updateListing = async (req, res) => {
 
     res.json({ message: 'Oglas ažuriran!', listing: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -187,7 +187,7 @@ const deleteListing = async (req, res) => {
 
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -199,7 +199,7 @@ const getMyListings = async (req, res) => {
     })
     res.json(listings)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

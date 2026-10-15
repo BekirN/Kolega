@@ -100,16 +100,20 @@ const MODULES = [
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
+  const [user] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null')
+    } catch {
+      return null
+    }
+  })
   const [hoveredCard, setHoveredCard] = useState(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const cardRefs = useRef({})
 
   useEffect(() => {
-    const stored = localStorage.getItem('user')
-    if (!stored) { navigate('/login'); return }
-    setUser(JSON.parse(stored))
-  }, [])
+    if (!user) navigate('/login')
+  }, [navigate, user])
 
   const handleMouseMove = (e, path) => {
     const card = cardRefs.current[path]

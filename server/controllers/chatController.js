@@ -1,12 +1,56 @@
 const prisma = require('../prisma/client')
 const cloudinary = require('../config/cloudinary')
 const multer = require('multer')
+const { randomUUID } = require('crypto')
+const {
+  parseCloudinaryAssetUrl,
+  createPrivateAssetDownloadUrl,
+} = require('../utils/privateCloudinaryRawAsset')
+const {
+  FILE_EXTENSIONS,
+  isImageMimeType,
+  sanitizeFileName,
+  validateUploadedFile,
+} = require('../utils/fileValidation')
 
 const storage = multer.memoryStorage()
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    callback(null, Boolean(FILE_EXTENSIONS[file.mimetype]))
+  },
 })
+
+const CHAT_FOLDER_PREFIX = 'kolega/chat/'
+const PRIVATE_URL_TTL_SECONDS = 120
+
+const getMessageFileUrl = (message) => {
+  if (!message.fileUrl) return null
+  const resourceType = message.fileType === 'image' ? 'image' : 'raw'
+
+  try {
+    const asset = parseCloudinaryAssetUrl(message.fileUrl, resourceType)
+    if (asset.deliveryType !== 'authenticated' || !asset.format || !asset.publicId.startsWith(CHAT_FOLDER_PREFIX)) return null
+    return createPrivateAssetDownloadUrl(asset, Math.floor(Date.now() / 1000) + PRIVATE_URL_TTL_SECONDS)
+  } catch {
+    return null
+  }
+}
+
+const hideUnavailableMessageFile = (message) => {
+  const fileUrl = getMessageFileUrl(message)
+  return {
+    ...message,
+    fileUrl,
+    ...(message.fileUrl && !fileUrl ? { fileUnavailable: true } : {}),
+  }
+}
+
+const hideMessageFileReference = (message) => {
+  const { fileUrl, ...safeMessage } = message
+  return { ...safeMessage, hasFile: Boolean(fileUrl) }
+}
 
 // Dohvati sve konverzacije korisnika
 const getConversations = async (req, res) => {
@@ -59,9 +103,12 @@ const getConversations = async (req, res) => {
       })
     )
 
-    res.json(result)
+    res.json(result.map((conversation) => ({
+      ...conversation,
+      messages: conversation.messages.map(hideMessageFileReference),
+    })))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -98,7 +145,12 @@ const getOrCreateConversation = async (req, res) => {
       }
     })
 
-    if (existing) return res.json(existing)
+    if (existing) {
+      return res.json({
+        ...existing,
+        messages: existing.messages.map(hideMessageFileReference),
+      })
+    }
 
     const conversation = await prisma.conversation.create({
       data: {
@@ -113,9 +165,12 @@ const getOrCreateConversation = async (req, res) => {
       }
     })
 
-    res.json(conversation)
+    res.json({
+      ...conversation,
+      messages: conversation.messages.map(hideMessageFileReference),
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -206,9 +261,9 @@ const getMessages = async (req, res) => {
       create: { conversationId, userId: req.user.userId }
     })
 
-    res.json(messages)
+    res.json(messages.map(hideUnavailableMessageFile))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -216,26 +271,24 @@ const getMessages = async (req, res) => {
 const uploadFile = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Fajl nije uploadovan' })
-
-    console.log('Upload pokušaj:', {
-      filename: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size
-    })
+    const validationError = validateUploadedFile(req.file)
+    if (validationError) return res.status(400).json({ message: validationError })
 
     const fileBuffer = req.file.buffer
     const mimeType = req.file.mimetype
-    const isImage = mimeType.startsWith('image/')
+    const isImage = isImageMimeType(mimeType)
+    const fileName = sanitizeFileName(req.file.originalname)
 
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           resource_type: isImage ? 'image' : 'raw',
-          folder: 'kolega/chat',
+          type: 'authenticated',
+          folder: `${CHAT_FOLDER_PREFIX}${req.user.userId}`,
+          public_id: `${randomUUID()}${isImage ? '' : FILE_EXTENSIONS[mimeType]}`,
         },
         (error, result) => {
           if (error) {
-            console.error('Cloudinary greška:', error)
             reject(error)
           } else {
             resolve(result)
@@ -248,11 +301,37 @@ const uploadFile = async (req, res) => {
     res.json({
       fileUrl: result.secure_url,
       fileType: isImage ? 'image' : 'file',
-      fileName: req.file.originalname,
+      fileMimeType: mimeType,
+      fileName,
     })
   } catch (error) {
-    console.error('Upload greška detalji:', error)
-    res.status(500).json({ message: 'Greška pri uploadu', error: error.message })
+    console.error('Chat upload failed:', error.name)
+    res.status(500).json({ message: 'Greška pri uploadu' })
+  }
+}
+
+const getMessageFileDownloadUrl = async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params
+    const participant = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId: req.user.userId } },
+      select: { id: true },
+    })
+    if (!participant) return res.status(403).json({ message: 'Nemate pristup' })
+
+    const message = await prisma.message.findFirst({
+      where: { id: messageId, conversationId, fileUrl: { not: null } },
+      select: { fileUrl: true, fileType: true },
+    })
+    if (!message) return res.status(404).json({ message: 'Fajl nije pronađen' })
+
+    const url = getMessageFileUrl(message)
+    if (!url) return res.status(409).json({ message: 'Fajl još nije dostupan u privatnom skladištu' })
+
+    res.set('Cache-Control', 'private, no-store')
+    res.json({ url, expiresAt: Math.floor(Date.now() / 1000) + PRIVATE_URL_TTL_SECONDS })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru' })
   }
 }
 
@@ -304,7 +383,7 @@ const createGroupChat = async (req, res) => {
 
     res.status(201).json(conversation)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -332,9 +411,9 @@ const getConversationMedia = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    res.json(media)
+    res.json(media.map(hideUnavailableMessageFile))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -361,7 +440,7 @@ const addGroupMember = async (req, res) => {
 
     res.json({ message: 'Član dodan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -369,6 +448,14 @@ const addGroupMember = async (req, res) => {
 const leaveGroup = async (req, res) => {
   try {
     const { conversationId } = req.params
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { isGroup: true },
+    })
+
+    if (!conversation?.isGroup) {
+      return res.status(404).json({ message: 'Grupni razgovor nije pronađen' })
+    }
 
     await prisma.conversationParticipant.delete({
       where: {
@@ -379,9 +466,12 @@ const leaveGroup = async (req, res) => {
       }
     })
 
+    const { io } = require('../index')
+    io.in(`user_${req.user.userId}`).socketsLeave(conversationId)
+
     res.json({ message: 'Napustio/la si grupu' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -437,7 +527,7 @@ const getUnreadMessagesCount = async (req, res) => {
 
     res.json({ count: unreadCount })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -446,11 +536,13 @@ module.exports = {
   getOrCreateConversation,
   getMessages,
   uploadFile,
+  getMessageFileDownloadUrl,
   upload,
   createGroupChat,
   getConversationMedia,
   addGroupMember,
   leaveGroup,
   getUnreadMessagesCount,
+  hideUnavailableMessageFile,
 
 }

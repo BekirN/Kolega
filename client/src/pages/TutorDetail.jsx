@@ -24,7 +24,7 @@ export default function TutorDetail() {
       try {
         const data = await getTutorById(id)
         setTutor(data)
-      } catch (err) {
+      } catch {
         navigate('/tutoring')
       } finally {
         setLoading(false)
@@ -455,7 +455,7 @@ export default function TutorDetail() {
                       />
                     </div>
                     <button type="submit" style={{
-                      padding: '13px', borderRadius: '14px', border: 'none',
+                      padding: '13px', borderRadius: '14px',
                       background: 'linear-gradient(135deg, #FFB800, #FF6B35)',
                       color: 'white', fontSize: '14px', fontWeight: '800', cursor: 'pointer',
                       boxShadow: '0 4px 16px rgba(255,184,0,0.3)',
@@ -558,7 +558,7 @@ export default function TutorDetail() {
                   <button
                     onClick={() => { setShowBookingForm(!showBookingForm); setShowReviewForm(false) }}
                     style={{
-                      padding: '13px', borderRadius: '14px', border: 'none',
+                      padding: '13px', borderRadius: '14px',
                       background: showBookingForm
                         ? '#D8D4CC'
                         : 'linear-gradient(135deg, #FF6B35, #FFB800)',
@@ -573,7 +573,7 @@ export default function TutorDetail() {
                   <button
                     onClick={() => { setShowReviewForm(!showReviewForm); setShowBookingForm(false) }}
                     style={{
-                      padding: '13px', borderRadius: '14px', border: 'none',
+                      padding: '13px', borderRadius: '14px',
                       background: showReviewForm ? '#D8D4CC' : '#F5F2ED',
                       color: showReviewForm ? '#6B7280' : '#FF6B35',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer',
@@ -586,7 +586,7 @@ export default function TutorDetail() {
                   <button
                     onClick={() => navigate(`/chat/${tutor.user?.id}`)}
                     style={{
-                      padding: '13px', borderRadius: '14px', border: 'none',
+                      padding: '13px', borderRadius: '14px',
                       background: '#F5F2ED', color: '#1C1C1E',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer',
                       border: '1.5px solid rgba(0,0,0,0.08)',
@@ -601,7 +601,7 @@ export default function TutorDetail() {
                   <button
                     onClick={() => navigate(`/profile/${tutor.user?.id}`)}
                     style={{
-                      padding: '13px', borderRadius: '14px', border: 'none',
+                      padding: '13px', borderRadius: '14px',
                       background: '#F5F2ED', color: '#6B7280',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer',
                       border: '1.5px solid rgba(0,0,0,0.06)',

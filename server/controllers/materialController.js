@@ -1,27 +1,58 @@
 const prisma = require('../prisma/client')
 const cloudinary = require('../config/cloudinary')
 const multer = require('multer')
+const { randomUUID } = require('crypto')
+const {
+  parseCloudinaryAssetUrl,
+  createPrivateAssetDownloadUrl,
+} = require('../utils/privateCloudinaryRawAsset')
+const {
+  FILE_EXTENSIONS,
+  validateUploadedFile,
+  sanitizeFileName,
+} = require('../utils/fileValidation')
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: (req, file, cb) => {
-    const allowed = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain',
-      'image/jpeg', 'image/png', 'image/webp',
-      'application/zip',
-    ]
-    if (allowed.includes(file.mimetype)) cb(null, true)
-    else cb(new Error('Tip fajla nije podržan'), false)
+    cb(null, Boolean(FILE_EXTENSIONS[file.mimetype]))
   }
 })
+
+const MATERIAL_FOLDER_PREFIX = 'kolega/materials/'
+const CHAT_FOLDER_PREFIX = 'kolega/chat/'
+const PRIVATE_URL_TTL_SECONDS = 120
+
+const hideMaterialFileUrl = (material) => {
+  if (!material) return material
+  const { fileUrl, ...safeMaterial } = material
+  return { ...safeMaterial, hasFile: Boolean(fileUrl) }
+}
+
+const hideSavedMaterialFileUrl = (save) => ({
+  ...save,
+  material: hideMaterialFileUrl(save.material),
+})
+
+const parsePrivateMaterialAsset = (fileUrl) => {
+  let resourceType
+  try {
+    const url = new URL(fileUrl)
+    resourceType = url.pathname.split('/').filter(Boolean)[1]
+  } catch {
+    return null
+  }
+  if (!['raw', 'image'].includes(resourceType)) return null
+
+  try {
+    const asset = parseCloudinaryAssetUrl(fileUrl, resourceType)
+    const allowedFolder = asset.publicId.startsWith(MATERIAL_FOLDER_PREFIX) || asset.publicId.startsWith(CHAT_FOLDER_PREFIX)
+    return asset.deliveryType === 'authenticated' && asset.format && allowedFolder ? asset : null
+  } catch {
+    return null
+  }
+}
 
 // Kreiraj default foldere za novog korisnika
 const createDefaultFolders = async (userId) => {
@@ -66,7 +97,7 @@ const getFolders = async (req, res) => {
 
     res.json(folders)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -86,7 +117,7 @@ const createFolder = async (req, res) => {
 
     res.status(201).json({ message: 'Folder kreiran!', folder })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -103,7 +134,7 @@ const deleteFolder = async (req, res) => {
     await prisma.materialFolder.delete({ where: { id: req.params.id } })
     res.json({ message: 'Folder obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -134,9 +165,9 @@ const getMyMaterials = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    res.json(materials)
+    res.json(materials.map(hideMaterialFileUrl))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -148,6 +179,7 @@ const getSavedMaterials = async (req, res) => {
       where: {
         userId: req.user.userId,
         ...(folderId && { folderId }),
+        material: { is: { isPublic: true, deletedAt: null } },
       },
       include: {
         material: {
@@ -162,9 +194,9 @@ const getSavedMaterials = async (req, res) => {
       orderBy: { savedAt: 'desc' }
     })
 
-    res.json(saves)
+    res.json(saves.map(hideSavedMaterialFileUrl))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -213,9 +245,9 @@ const getPublicMaterials = async (req, res) => {
       isOwn: m.uploaderId === req.user.userId,
     }))
 
-    res.json(materialsWithSaved)
+    res.json(materialsWithSaved.map(hideMaterialFileUrl))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -224,23 +256,37 @@ const uploadMaterial = async (req, res) => {
     const { title, description, subject, professor, year, isPublic, folderId } = req.body
 
     if (!req.file) return res.status(400).json({ message: 'Fajl je obavezan' })
-    if (!title) return res.status(400).json({ message: 'Naziv je obavezan' })
+    const validationError = validateUploadedFile(req.file)
+    if (validationError) return res.status(400).json({ message: validationError })
+    if (typeof title !== 'string' || !title.trim() || title.trim().length > 200) {
+      return res.status(400).json({ message: 'Naziv mora imati između 1 i 200 znakova' })
+    }
+
+    let targetFolderId = folderId || null
+    if (targetFolderId) {
+      const folder = await prisma.materialFolder.findFirst({
+        where: { id: targetFolderId, userId: req.user.userId },
+        select: { id: true },
+      })
+      if (!folder) return res.status(403).json({ message: 'Nemate pristup folderu' })
+    }
 
     // Upload na Cloudinary
-    const fileUrl = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'kolega/materials',
           resource_type: 'raw',
-          public_id: `${Date.now()}_${req.file.originalname.replace(/\s/g, '_')}`,
+          type: 'authenticated',
+          public_id: `${randomUUID()}${FILE_EXTENSIONS[req.file.mimetype]}`,
         },
-        (error, result) => error ? reject(error) : resolve(result.secure_url)
+        (error, result) => error ? reject(error) : resolve(result)
       )
       stream.end(req.file.buffer)
     })
+    const fileUrl = result.secure_url
 
     // Pronađi default folder ako nije odabran
-    let targetFolderId = folderId || null
     if (!targetFolderId) {
       const defaultFolder = await prisma.materialFolder.findFirst({
         where: { userId: req.user.userId, name: 'Moji materijali', isDefault: true }
@@ -256,7 +302,7 @@ const uploadMaterial = async (req, res) => {
 
     const material = await prisma.material.create({
       data: {
-        title,
+        title: title.trim(),
         description,
         fileUrl,
         fileType: req.file.mimetype,
@@ -277,9 +323,116 @@ const uploadMaterial = async (req, res) => {
       }
     })
 
-    res.status(201).json({ message: 'Materijal uploadovan!', material })
+    res.status(201).json({ message: 'Materijal uploadovan!', material: hideMaterialFileUrl(material) })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
+  }
+}
+
+const downloadMaterial = async (req, res) => {
+  try {
+    const material = await prisma.material.findFirst({
+      where: { id: req.params.id, deletedAt: null },
+      select: { uploaderId: true, isPublic: true, fileUrl: true },
+    })
+    if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
+    if (material.uploaderId !== req.user.userId && !material.isPublic) {
+      return res.status(403).json({ message: 'Nemate pristup' })
+    }
+
+    const asset = parsePrivateMaterialAsset(material.fileUrl)
+    if (!asset) {
+      return res.status(409).json({
+        code: 'MATERIAL_MIGRATION_REQUIRED',
+        message: 'Fajl još nije prebačen u privatno skladište',
+      })
+    }
+
+    const expiresAt = Math.floor(Date.now() / 1000) + PRIVATE_URL_TTL_SECONDS
+    const url = createPrivateAssetDownloadUrl(asset, expiresAt)
+    await prisma.material.update({
+      where: { id: req.params.id },
+      data: { downloadCount: { increment: 1 } },
+    })
+    res.set('Cache-Control', 'private, no-store')
+    res.json({ url, expiresAt })
+  } catch {
+    res.status(500).json({ message: 'Greška na serveru' })
+  }
+}
+
+const saveChatMessageToLibrary = async (req, res) => {
+  try {
+    const message = await prisma.message.findFirst({
+      where: {
+        id: req.params.messageId,
+        fileUrl: { not: null },
+        senderId: { not: req.user.userId },
+        conversation: { is: { participants: { some: { userId: req.user.userId } } } },
+      },
+      select: { id: true, senderId: true, content: true, fileUrl: true, fileType: true, fileMimeType: true },
+    })
+    if (!message) return res.status(404).json({ message: 'Prilog iz razgovora nije pronađen' })
+
+    const asset = parsePrivateMaterialAsset(message.fileUrl)
+    if (!asset || !asset.publicId.startsWith(CHAT_FOLDER_PREFIX)) {
+      return res.status(409).json({
+        code: 'CHAT_FILE_MIGRATION_REQUIRED',
+        message: 'Prilog još nije dostupan u privatnom skladištu',
+      })
+    }
+
+    const existing = await prisma.material.findFirst({
+      where: { uploaderId: req.user.userId, sourceMessageId: message.id },
+    })
+    if (existing) {
+      return res.json({ message: 'Materijal je već sačuvan', material: hideMaterialFileUrl(existing), alreadySaved: true })
+    }
+
+    await createDefaultFolders(req.user.userId)
+    let folderId = req.body.folderId || null
+    if (folderId) {
+      const folder = await prisma.materialFolder.findFirst({
+        where: { id: folderId, userId: req.user.userId },
+        select: { id: true },
+      })
+      if (!folder) return res.status(403).json({ message: 'Nemate pristup folderu' })
+    } else {
+      const defaultFolder = await prisma.materialFolder.findFirst({
+        where: { userId: req.user.userId, name: 'Primljeno', isDefault: true },
+        select: { id: true },
+      })
+      folderId = defaultFolder?.id || null
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { faculty: true },
+    })
+
+    const material = await prisma.material.create({
+      data: {
+        title: sanitizeFileName(message.content),
+        fileUrl: message.fileUrl,
+        fileType: message.fileMimeType || (message.fileType === 'image' ? 'image/jpeg' : 'application/octet-stream'),
+        isPublic: false,
+        faculty: user?.faculty || null,
+        folderId,
+        uploaderId: req.user.userId,
+        sourceMessageId: message.id,
+      },
+    })
+
+    res.status(201).json({ message: 'Materijal sačuvan u biblioteku', material: hideMaterialFileUrl(material) })
+  } catch (error) {
+    if (error.code === 'P2002') {
+      const existing = await prisma.material.findFirst({
+        where: { uploaderId: req.user.userId, sourceMessageId: req.params.messageId },
+      })
+      if (existing) return res.json({ message: 'Materijal je već sačuvan', material: hideMaterialFileUrl(existing), alreadySaved: true })
+    }
+    console.error('Saving chat file failed:', error.name)
+    res.status(500).json({ message: 'Greška na serveru' })
   }
 }
 
@@ -290,6 +443,7 @@ const saveMaterial = async (req, res) => {
 
     const material = await prisma.material.findUnique({ where: { id: materialId, deletedAt: null } })
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
+    if (!material.isPublic) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId === req.user.userId) {
       return res.status(400).json({ message: 'Ne možete sačuvati vlastiti materijal' })
     }
@@ -302,6 +456,12 @@ const saveMaterial = async (req, res) => {
         where: { userId: req.user.userId, name: folderName, isDefault: true }
       })
       if (folder) targetFolderId = folder.id
+    } else {
+      const folder = await prisma.materialFolder.findFirst({
+        where: { id: targetFolderId, userId: req.user.userId },
+        select: { id: true },
+      })
+      if (!folder) return res.status(403).json({ message: 'Nemate pristup folderu' })
     }
 
     // Provjeri da li je već sačuvano
@@ -331,15 +491,9 @@ const saveMaterial = async (req, res) => {
       }
     })
 
-    // Povećaj download count
-    await prisma.material.update({
-      where: { id: materialId },
-      data: { downloadCount: { increment: 1 } }
-    })
-
-    res.status(201).json({ message: 'Materijal sačuvan!', save })
+    res.status(201).json({ message: 'Materijal sačuvan!', save: hideSavedMaterialFileUrl(save) })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -353,7 +507,7 @@ const unsaveMaterial = async (req, res) => {
 
     res.json({ message: 'Uklonjeno iz biblioteke' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -367,7 +521,7 @@ const deleteMaterial = async (req, res) => {
 
     res.json({ message: 'Materijal obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -384,10 +538,10 @@ const togglePublic = async (req, res) => {
 
     res.json({
       message: updated.isPublic ? 'Materijal je sada javan!' : 'Materijal je sada privatan',
-      material: updated
+      material: hideMaterialFileUrl(updated)
     })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -398,14 +552,22 @@ const moveMaterial = async (req, res) => {
     if (!material) return res.status(404).json({ message: 'Materijal nije pronađen' })
     if (material.uploaderId !== req.user.userId) return res.status(403).json({ message: 'Nemate pristup' })
 
+    if (folderId) {
+      const folder = await prisma.materialFolder.findFirst({
+        where: { id: folderId, userId: req.user.userId },
+        select: { id: true },
+      })
+      if (!folder) return res.status(403).json({ message: 'Nemate pristup folderu' })
+    }
+
     const updated = await prisma.material.update({
       where: { id: req.params.id },
       data: { folderId: folderId || null }
     })
 
-    res.json({ message: 'Premješteno!', material: updated })
+    res.json({ message: 'Premješteno!', material: hideMaterialFileUrl(updated) })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -414,5 +576,6 @@ module.exports = {
   getFolders, createFolder, deleteFolder,
   getMyMaterials, getSavedMaterials, getPublicMaterials,
   uploadMaterial, saveMaterial, unsaveMaterial,
+  downloadMaterial, saveChatMessageToLibrary,
   deleteMaterial, togglePublic, moveMaterial,
 }

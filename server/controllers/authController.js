@@ -24,7 +24,7 @@ const {
 } = require('../config/mailgun')
 
 const generateVerificationCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  return crypto.randomInt(100000, 1000000).toString()
 }
 
 const generateTokens = (user) => {
@@ -75,9 +75,8 @@ const register = async (req, res) => {
 
     try {
       await sendVerificationEmail(email, firstName, code)
-      console.log(`Verifikacijski email poslan na ${email}`)
     } catch (emailErr) {
-      console.error('Email greška:', emailErr.message)
+      console.error('Verification email failed:', emailErr.name || 'Unknown')
     }
 
     const { token, refreshToken } = generateTokens(user)
@@ -106,8 +105,8 @@ const register = async (req, res) => {
       requiresEmailVerification: true,
     })
   } catch (error) {
-    console.error('Register greška:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Registration failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -155,12 +154,12 @@ const verifyEmail = async (req, res) => {
     try {
       await sendWelcomeEmail(user.email, user.firstName)
     } catch (emailErr) {
-      console.error('Welcome email greška:', emailErr)
+      console.error('Welcome email failed:', emailErr.name || 'Unknown')
     }
 
     res.json({ message: 'Email uspješno verifikovan! 🎉', emailVerified: true })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -185,7 +184,7 @@ const resendVerificationCode = async (req, res) => {
 
     res.json({ message: 'Novi kod je poslan na tvoj email!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -226,8 +225,8 @@ const login = async (req, res) => {
       }
     })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Authentication request failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -240,7 +239,7 @@ const logout = async (req, res) => {
     })
     res.json({ message: 'Odjava uspješna!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -304,7 +303,7 @@ const forgotPassword = async (req, res) => {
     try {
       await sendPasswordResetEmail(user.email, user.firstName, resetUrl)
     } catch (emailErr) {
-      console.error('Reset email greška:', emailErr.message)
+      console.error('Password reset email failed:', emailErr.name || 'Unknown')
       await prisma.user.update({
         where: { id: user.id },
         data: { resetPasswordToken: null, resetPasswordTokenExp: null }
@@ -314,7 +313,7 @@ const forgotPassword = async (req, res) => {
 
     res.json({ message: 'Ako email postoji, poslan je link za reset.' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -359,7 +358,7 @@ const resetPassword = async (req, res) => {
 
     res.json({ message: 'Password uspješno resetovan! Prijavi se sa novim passwordom.' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -383,13 +382,15 @@ const getMe = async (req, res) => {
 // ─── GET USER PROFILE ─────────────────────────────────────────────
 const getUserProfile = async (req, res) => {
   try {
+    const isOwnProfile = req.user.userId === req.params.id
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
       select: {
-        id: true, firstName: true, lastName: true, email: true,
+        id: true, firstName: true, lastName: true,
         university: true, faculty: true, yearOfStudy: true,
         profileImage: true, bio: true, verificationStatus: true,
-        verificationNote: true, emailVerified: true, role: true, createdAt: true,
+        ...(isOwnProfile && { verificationNote: true }),
+        createdAt: true,
         _count: {
           select: {
             shopItems: true,
@@ -406,8 +407,8 @@ const getUserProfile = async (req, res) => {
 
     res.json(user)
   } catch (error) {
-    console.error('getUserProfile greška:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Profile request failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -435,7 +436,7 @@ const updateProfile = async (req, res) => {
 
     res.json({ message: 'Profil ažuriran!', user: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -462,7 +463,7 @@ const updateProfileImage = async (req, res) => {
 
     res.json({ message: 'Slika ažurirana!', profileImage: updated.profileImage })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -492,18 +493,20 @@ const searchUsers = async (req, res) => {
 
     res.json(users)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
 // ─── UPLOAD INDEX IMAGE ───────────────────────────────────────────
 const uploadIndexImage = async (req, res) => {
   try {
-    console.log('=== uploadIndexImage ===')
     const cloudinary = require('../config/cloudinary')
 
     if (!req.file) {
       return res.status(400).json({ message: 'Slika nije uploadovana' })
+    }
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ message: 'Potrebno je uploadovati sliku.' })
     }
 
     const user = await prisma.user.findUnique({ where: { id: req.user.userId } })
@@ -518,7 +521,7 @@ const uploadIndexImage = async (req, res) => {
 
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: 'kolega/index-verification', resource_type: 'image' },
+        { folder: 'kolega/index-verification', resource_type: 'image', type: 'authenticated' },
         (error, result) => error ? reject(error) : resolve(result)
       )
       stream.end(req.file.buffer)
@@ -561,7 +564,7 @@ const uploadIndexImage = async (req, res) => {
           })
         })
       } catch (socketErr) {
-        console.error('Socket greška:', socketErr.message)
+        console.error('Verification socket notification failed:', socketErr.name || 'Unknown')
       }
     }
 
@@ -570,8 +573,8 @@ const uploadIndexImage = async (req, res) => {
       verificationStatus: 'PENDING'
     })
   } catch (error) {
-    console.error('uploadIndexImage GREŠKA:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('uploadIndexImage failed:', error.name)
+    res.status(500).json({ message: 'Greška na serveru' })
   }
 }
 

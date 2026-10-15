@@ -33,6 +33,16 @@ export const getPublicMaterials = async (filters = {}) => {
   return res.data
 }
 
+export const getMaterialDownloadUrl = async (materialId) => {
+  const res = await api.get(`/materials/${materialId}/download`)
+  return res.data.url
+}
+
+export const saveChatMessageToLibrary = async (messageId) => {
+  const res = await api.post(`/materials/save-chat/${messageId}`)
+  return res.data
+}
+
 export const uploadMaterial = async (data) => {
   const formData = new FormData()
   Object.entries(data).forEach(([key, val]) => {

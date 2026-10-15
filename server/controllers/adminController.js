@@ -1,5 +1,9 @@
 const prisma = require('../prisma/client')
 const { sendEmail } = require('../config/mailgun')
+const {
+  parseCloudinaryImageAssetUrl,
+  createPrivateImageDownloadUrl,
+} = require('../utils/privateCloudinaryRawAsset')
 
 const logAdminAction = (adminId, action, targetId = null, targetType = null, details = null) =>
   prisma.adminLog.create({ data: { adminId, action, targetId, targetType, details } }).catch(() => {})
@@ -61,7 +65,7 @@ const getStats = async (req, res) => {
       recentUsers,
     })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -106,7 +110,7 @@ const getUsers = async (req, res) => {
 
     res.json({ users, total, pages: Math.ceil(total / parseInt(limit)) })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -131,7 +135,7 @@ const updateUserRole = async (req, res) => {
 
     res.json({ message: `Rola promijenjena u ${role}`, user })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -175,7 +179,7 @@ const assignCompanyMember = async (req, res) => {
       member
     })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -191,7 +195,7 @@ const removeCompanyMember = async (req, res) => {
 
     res.json({ message: 'Membership uklonjen!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -211,7 +215,7 @@ const getCompaniesForAdmin = async (req, res) => {
     })
     res.json(companies)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -227,7 +231,7 @@ const deleteUser = async (req, res) => {
 
     res.json({ message: 'Korisnik obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -244,7 +248,7 @@ const verifyUser = async (req, res) => {
     })
     res.json({ message: 'Korisnik verifikovan!', user })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -274,7 +278,7 @@ const deleteContent = async (req, res) => {
 
     res.json({ message: 'Sadržaj obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -296,7 +300,7 @@ const sendBroadcastEmail = async (req, res) => {
       select: { email: true, firstName: true }
     })
 
-    console.log(`Broadcast: šaljem na ${users.length} korisnika`)
+    console.log(`Broadcast email batch size: ${users.length}`)
 
     const { Resend } = require('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
@@ -365,13 +369,12 @@ const sendBroadcastEmail = async (req, res) => {
         })
       )
 
-      results.forEach((r, idx) => {
+      results.forEach((r) => {
         if (r.status === 'fulfilled') {
           sent++
-          console.log(`✉️ Poslan email ${i + idx + 1}/${users.length}`)
         } else {
           failed++
-          console.error(`❌ Greška email ${i + idx + 1}:`, r.reason)
+          console.error('Broadcast email delivery failed')
         }
       })
 
@@ -386,8 +389,8 @@ const sendBroadcastEmail = async (req, res) => {
       failed,
     })
   } catch (error) {
-    console.error('sendBroadcastEmail greška:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Broadcast email failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -427,7 +430,7 @@ const sendSystemNotification = async (req, res) => {
 
     res.json({ message: `Notifikacija poslana ${users.length} korisnicima!` })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -464,25 +467,13 @@ const getAllContent = async (req, res) => {
     const data = await queries[type]()
     res.json(data)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
 // ─── VERIFIKACIJE ─────────────────────────────────────────────────
 const getPendingVerifications = async (req, res) => {
   try {
-    console.log('=== getPendingVerifications ===')
-
-    const allUsers = await prisma.user.findMany({
-      where: { deletedAt: null },
-      select: { id: true, firstName: true, verificationStatus: true, indexImage: true }
-    })
-    console.log('Svi korisnici statusi:', allUsers.map(u => ({
-      name: u.firstName,
-      status: u.verificationStatus,
-      hasIndex: !!u.indexImage
-    })))
-
     const users = await prisma.user.findMany({
       where: { verificationStatus: 'PENDING', deletedAt: null },
       select: {
@@ -494,11 +485,44 @@ const getPendingVerifications = async (req, res) => {
       orderBy: { createdAt: 'asc' }
     })
 
-    console.log('PENDING korisnici:', users.length, users)
-    res.json(users)
+    res.json(users.map(({ indexImage, ...user }) => ({
+      ...user,
+      hasIndexImage: Boolean(indexImage),
+    })))
   } catch (error) {
-    console.error('getPendingVerifications GREŠKA:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru' })
+  }
+}
+
+const getVerificationIndexImage = async (req, res) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: req.params.id,
+        verificationStatus: 'PENDING',
+        deletedAt: null,
+      },
+      select: { indexImage: true },
+    })
+
+    if (!user || !user.indexImage) {
+      return res.status(404).json({ message: 'Slika indeksa nije pronađena' })
+    }
+
+    const asset = parseCloudinaryImageAssetUrl(user.indexImage)
+    if (asset.deliveryType !== 'authenticated' || !asset.format) {
+      return res.status(409).json({
+        code: 'INDEX_IMAGE_MIGRATION_REQUIRED',
+        message: 'Slika indeksa još nije migrirana u privatno skladište.',
+      })
+    }
+
+    const expiresAt = Math.floor(Date.now() / 1000) + 120
+    const url = createPrivateImageDownloadUrl(asset, expiresAt)
+    res.set('Cache-Control', 'private, no-store')
+    res.json({ url, expiresAt })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru' })
   }
 }
 
@@ -554,7 +578,7 @@ const reviewVerification = async (req, res) => {
         link: `/profile/${id}`,
       })
     } catch (socketErr) {
-      console.error('Socket greška:', socketErr.message)
+      console.error('Admin socket notification failed:', socketErr.name || 'Unknown')
     }
 
     try {
@@ -563,12 +587,12 @@ const reviewVerification = async (req, res) => {
         user.email, user.firstName, action === 'approve', note
       )
     } catch (emailErr) {
-      console.error('Email greška:', emailErr.message)
+      console.error('Verification result email failed:', emailErr.name || 'Unknown')
     }
 
     res.json({ message: `Verifikacija ${action === 'approve' ? 'odobrena' : 'odbijena'}!`, user })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -584,14 +608,14 @@ const getAdminLogs = async (req, res) => {
     })
     res.json(logs)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
 module.exports = {
   getStats, getUsers, updateUserRole, deleteUser, verifyUser,
   deleteContent, sendBroadcastEmail, sendSystemNotification,
-  getAllContent, getPendingVerifications, reviewVerification,
+  getAllContent, getPendingVerifications, getVerificationIndexImage, reviewVerification,
   assignCompanyMember, removeCompanyMember, getCompaniesForAdmin,
   getAdminLogs,
 }

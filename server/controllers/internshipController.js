@@ -1,8 +1,18 @@
 const prisma = require('../prisma/client')
 const cloudinary = require('../config/cloudinary')
 const multer = require('multer')
+const { randomUUID } = require('crypto')
 const { sendVerificationEmail } = require('../config/mailgun')
 const { createActivity } = require('../utils/activityHelper')
+const {
+  parseCloudinaryRawAssetUrl,
+  createPrivateRawDownloadUrl,
+} = require('../utils/privateCloudinaryRawAsset')
+
+const hideCvUrl = (application) => {
+  const { cvUrl, ...safeApplication } = application
+  return { ...safeApplication, hasCv: Boolean(cvUrl) }
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -10,29 +20,6 @@ const upload = multer({
 })
 
 // ─── COMPANY MEMBERSHIP ───────────────────────────────────────────
-
-const joinCompany = async (req, res) => {
-  try {
-    const { companyId, role = 'HR' } = req.body
-
-    const company = await prisma.company.findUnique({ where: { id: companyId } })
-    if (!company) return res.status(404).json({ message: 'Firma nije pronađena' })
-
-    const existing = await prisma.companyMember.findUnique({
-      where: { userId_companyId: { userId: req.user.userId, companyId } }
-    })
-    if (existing) return res.status(400).json({ message: 'Već ste član ove firme' })
-
-    const member = await prisma.companyMember.create({
-      data: { userId: req.user.userId, companyId, role },
-      include: { company: true }
-    })
-
-    res.status(201).json({ message: 'Pridruženi ste firmi!', member })
-  } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
-  }
-}
 
 const getMyCompanies = async (req, res) => {
   try {
@@ -52,7 +39,7 @@ const getMyCompanies = async (req, res) => {
     })
     res.json(memberships)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -107,12 +94,12 @@ const createInternship = async (req, res) => {
         )
       }
     } catch (emailErr) {
-      console.error('Email greška:', emailErr.message)
+      console.error('Internship email failed:', emailErr.name || 'Unknown')
     }
 
     res.status(201).json({ message: 'Praksa objavljena!', internship })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -146,7 +133,7 @@ const updateInternship = async (req, res) => {
 
     res.json({ message: 'Praksa ažurirana!', internship: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -167,7 +154,7 @@ const deleteInternship = async (req, res) => {
 
     res.json({ message: 'Praksa obrisana!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -183,7 +170,7 @@ const getCompanyInternships = async (req, res) => {
     })
     res.json(internships)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -210,9 +197,20 @@ const applyToInternship = async (req, res) => {
     // CV upload
     let cvUrl = null
     if (req.file) {
+      const pdfHeader = Buffer.from('%PDF-', 'ascii')
+      const headerWindow = req.file.buffer.subarray(0, 1024)
+      if (req.file.mimetype !== 'application/pdf' || headerWindow.indexOf(pdfHeader) === -1) {
+        return res.status(400).json({ message: 'CV mora biti validan PDF dokument.' })
+      }
+
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-          { folder: 'kolega/cvs', resource_type: 'raw' },
+          {
+            folder: 'kolega/cvs',
+            public_id: `${randomUUID()}.pdf`,
+            resource_type: 'raw',
+            type: 'authenticated',
+          },
           (error, result) => error ? reject(error) : resolve(result)
         )
         stream.end(req.file.buffer)
@@ -268,12 +266,12 @@ const applyToInternship = async (req, res) => {
         })
       })
     } catch (socketErr) {
-      console.error('Socket greška:', socketErr.message)
+      console.error('Internship socket notification failed:', socketErr.name || 'Unknown')
     }
 
-    res.status(201).json({ message: 'Prijava uspješno poslana!', application })
+    res.status(201).json({ message: 'Prijava uspješno poslana!', application: hideCvUrl(application) })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -290,9 +288,9 @@ const getMyApplications = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     })
-    res.json(applications)
+    res.json(applications.map(hideCvUrl))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -323,9 +321,70 @@ const getCompanyApplications = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     })
 
-    res.json(applications)
+    res.json(applications.map(hideCvUrl))
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
+  }
+}
+
+const downloadApplicationCv = async (req, res) => {
+  try {
+    const application = await prisma.internshipApplication.findUnique({
+      where: { id: req.params.applicationId },
+      select: {
+        applicantId: true,
+        cvUrl: true,
+        internship: { select: { companyId: true } },
+      },
+    })
+
+    if (!application) return res.status(404).json({ message: 'Prijava nije pronađena' })
+
+    const isApplicant = application.applicantId === req.user.userId
+    const isAdmin = req.user.role === 'ADMIN'
+    if (!isApplicant && !isAdmin) {
+      const membership = await prisma.companyMember.findUnique({
+        where: {
+          userId_companyId: {
+            userId: req.user.userId,
+            companyId: application.internship.companyId,
+          }
+        }
+      })
+      if (!membership) return res.status(403).json({ message: 'Nemate pristup' })
+    }
+
+    if (!application.cvUrl) return res.status(404).json({ message: 'Prijava nema CV' })
+
+    let asset
+    try {
+      asset = parseCloudinaryRawAssetUrl(application.cvUrl)
+    } catch (error) {
+      return res.status(409).json({
+        code: 'CV_MIGRATION_REQUIRED',
+        message: 'CV fajl još nije migriran u privatno skladište.',
+      })
+    }
+
+    if (asset.deliveryType !== 'authenticated') {
+      return res.status(409).json({
+        code: 'CV_MIGRATION_REQUIRED',
+        message: 'CV fajl još nije migriran u privatno skladište.',
+      })
+    }
+    if (asset.format !== 'pdf') {
+      return res.status(409).json({
+        code: 'CV_MIGRATION_REQUIRED',
+        message: 'CV fajl nema podržan PDF format.',
+      })
+    }
+
+    const expiresAt = Math.floor(Date.now() / 1000) + 120
+    const url = createPrivateRawDownloadUrl(asset, expiresAt)
+    res.set('Cache-Control', 'private, no-store')
+    res.json({ url, expiresAt })
+  } catch (error) {
+    res.status(500).json({ message: 'Greška na serveru' })
   }
 }
 
@@ -389,13 +448,13 @@ const updateApplicationStatus = async (req, res) => {
           link: '/companies/my-applications',
         })
       } catch (socketErr) {
-        console.error('Socket greška:', socketErr.message)
+        console.error('Internship socket notification failed:', socketErr.name || 'Unknown')
       }
     }
 
     res.json({ message: 'Status ažuriran!', application: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -412,13 +471,12 @@ const withdrawApplication = async (req, res) => {
     await prisma.internshipApplication.delete({ where: { id: req.params.applicationId } })
     res.json({ message: 'Prijava povučena!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
 module.exports = {
   upload,
-  joinCompany,
   getMyCompanies,
   createInternship,
   updateInternship,
@@ -427,6 +485,7 @@ module.exports = {
   applyToInternship,
   getMyApplications,
   getCompanyApplications,
+  downloadApplicationCv,
   updateApplicationStatus,
   withdrawApplication,
 }

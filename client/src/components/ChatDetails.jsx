@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getConversationMedia, leaveGroup } from '../api/chat'
+import { getConversationMedia, getMessageFileDownloadUrl, leaveGroup } from '../api/chat'
 
 export default function ChatDetails({ conversation, onClose, currentUser }) {
   const navigate = useNavigate()
@@ -8,6 +8,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
   const [files, setFiles] = useState([])
   const [mediaTab, setMediaTab] = useState('slike')
   const [loading, setLoading] = useState(true)
+  const conversationId = conversation?.id
 
   const isGroup = conversation?.isGroup
   const otherParticipant = !isGroup
@@ -16,10 +17,10 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
 
   useEffect(() => {
     const fetchMedia = async () => {
-      if (!conversation) return
+      if (!conversationId) return
       setLoading(true)
       try {
-        const data = await getConversationMedia(conversation.id)
+        const data = await getConversationMedia(conversationId)
         setMedia(data.filter(m => m.fileType === 'image'))
         setFiles(data.filter(m => m.fileType === 'file'))
       } catch (err) {
@@ -29,7 +30,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
       }
     }
     fetchMedia()
-  }, [conversation?.id])
+  }, [conversationId])
 
   const handleLeaveGroup = async () => {
     if (!confirm('Jesi li siguran da želiš napustiti grupu?')) return
@@ -39,6 +40,23 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
       navigate('/chat')
       window.location.reload()
     } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleOpenMessageFile = async (event, messageId) => {
+    event.preventDefault()
+    const downloadWindow = window.open('about:blank', '_blank')
+    try {
+      const url = await getMessageFileDownloadUrl(conversation.id, messageId)
+      if (downloadWindow) {
+        downloadWindow.opener = null
+        downloadWindow.location.replace(url)
+      } else {
+        window.location.assign(url)
+      }
+    } catch (err) {
+      downloadWindow?.close()
       console.error(err)
     }
   }
@@ -272,6 +290,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
                     href={msg.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(event) => handleOpenMessageFile(event, msg.id)}
                     style={{
                       aspectRatio: '1', overflow: 'hidden', borderRadius: '10px',
                       display: 'block', transition: 'opacity 0.15s',
@@ -302,6 +321,7 @@ export default function ChatDetails({ conversation, onClose, currentUser }) {
                     href={msg.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(event) => handleOpenMessageFile(event, msg.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '10px',
                       padding: '10px 12px', borderRadius: '12px',

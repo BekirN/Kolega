@@ -22,7 +22,7 @@ const getActivities = async (req, res) => {
 
     res.json(activities)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -37,7 +37,7 @@ const getUnreadCount = async (req, res) => {
     })
     res.json({ count })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -53,7 +53,7 @@ const markAllAsRead = async (req, res) => {
     })
     res.json({ message: 'Sve označeno kao pročitano' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -66,7 +66,7 @@ const markAsRead = async (req, res) => {
     })
     res.json({ message: 'Označeno kao pročitano' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

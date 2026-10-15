@@ -1,37 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { NotificationProvider } from './context/NotificationContext'
-import Home from './pages/Home'
 import Layout from './components/Layout'
-import Register from './pages/Register'
-import Login from './pages/Login'
-import Shop from './pages/Shop'
-import NewShopItem from './pages/NewShopItem'
-import ShopItemDetail from './pages/ShopItemDetail'
-import Companies from './pages/Companies'
-import CompanyDetail from './pages/CompanyDetail'
-import Tutoring from './pages/Tutoring'
-import TutorDetail from './pages/TutorDetail'
-import BecomeTutor from './pages/BecomeTutor'
-import MyBookings from './pages/MyBookings'
-import Community from './pages/Community'
-import PostDetail from './pages/PostDetail'
-import NewPost from './pages/NewPost'
-import Chat from './pages/Chat'
-import Profile from './pages/Profile'
-import StudentJobs from './pages/StudentJobs'
-import NewJob from './pages/NewJob'
-import { useEffect } from 'react'
-import Materials from './pages/Materials'
-import Housing from './pages/Housing'
-import NewHousing from './pages/NewHousing'
-import VerifyEmail from './pages/VerifyEmail'
-import Admin from './pages/Admin'
-import MyApplications from './pages/MyApplications'
-import CompanyApplications from './pages/CompanyApplications'
+import { lazy, Suspense, useEffect } from 'react'
 import ErrorBoundary from './components/ErrorBoundary'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
 import { initSocket, disconnectSocket } from './services/socket'
+
+const Home = lazy(() => import('./pages/Home'))
+const Register = lazy(() => import('./pages/Register'))
+const Login = lazy(() => import('./pages/Login'))
+const Shop = lazy(() => import('./pages/Shop'))
+const NewShopItem = lazy(() => import('./pages/NewShopItem'))
+const ShopItemDetail = lazy(() => import('./pages/ShopItemDetail'))
+const Companies = lazy(() => import('./pages/Companies'))
+const CompanyDetail = lazy(() => import('./pages/CompanyDetail'))
+const Tutoring = lazy(() => import('./pages/Tutoring'))
+const TutorDetail = lazy(() => import('./pages/TutorDetail'))
+const BecomeTutor = lazy(() => import('./pages/BecomeTutor'))
+const MyBookings = lazy(() => import('./pages/MyBookings'))
+const Community = lazy(() => import('./pages/Community'))
+const PostDetail = lazy(() => import('./pages/PostDetail'))
+const NewPost = lazy(() => import('./pages/NewPost'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Profile = lazy(() => import('./pages/Profile'))
+const StudentJobs = lazy(() => import('./pages/StudentJobs'))
+const NewJob = lazy(() => import('./pages/NewJob'))
+const Materials = lazy(() => import('./pages/Materials'))
+const Housing = lazy(() => import('./pages/Housing'))
+const NewHousing = lazy(() => import('./pages/NewHousing'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const Admin = lazy(() => import('./pages/Admin'))
+const MyApplications = lazy(() => import('./pages/MyApplications'))
+const CompanyApplications = lazy(() => import('./pages/CompanyApplications'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const PublicRoute = ({ children }) => {
   const token = localStorage.getItem('token')
   if (token) return <Navigate to="/dashboard" />
@@ -55,11 +56,13 @@ function App() {
     if (token) {
       initSocket()
     }
+    return () => disconnectSocket()
   }, [])
   return (
     <BrowserRouter>
       <NotificationProvider>
         <ErrorBoundary>
+          <Suspense fallback={<div role="status" className="p-8 text-center">Ucitavanje...</div>}>
           <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -92,7 +95,8 @@ function App() {
           <Route path="/companies/:id" element={<PrivateRoute><CompanyDetail /></PrivateRoute>} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-        </Routes>
+          </Routes>
+          </Suspense>
         </ErrorBoundary>
       </NotificationProvider>
     </BrowserRouter>

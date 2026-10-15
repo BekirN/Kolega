@@ -4,6 +4,7 @@ import {
   getFolders, createFolder, deleteFolder,
   getMyMaterials, getSavedMaterials, getPublicMaterials,
   uploadMaterial, saveMaterial, unsaveMaterial,
+  getMaterialDownloadUrl,
   deleteMaterial, togglePublic, moveMaterial,
 } from '../api/materials'
 
@@ -189,6 +190,22 @@ export default function Materials() {
       setPublicMaterials(prev => prev.map(m => m.id === materialId ? { ...m, isSaved: true } : m))
       await loadLibrary()
     } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleDownload = async (materialId) => {
+    const downloadWindow = window.open('about:blank', '_blank')
+    try {
+      const url = await getMaterialDownloadUrl(materialId)
+      if (downloadWindow) {
+        downloadWindow.opener = null
+        downloadWindow.location.replace(url)
+      } else {
+        window.location.assign(url)
+      }
+    } catch (err) {
+      downloadWindow?.close()
       console.error(err)
     }
   }
@@ -675,17 +692,15 @@ export default function Materials() {
               {/* Akcije */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 
-                 <a href={selectedMaterial.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                 <button onClick={() => handleDownload(selectedMaterial.id)}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    padding: '11px', borderRadius: '12px', textDecoration: 'none',
+                    padding: '11px', borderRadius: '12px', border: 'none', cursor: 'pointer',
                     background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
                     color: 'white', fontWeight: '700', fontSize: '14px',
                   }}>
                   ⬇️ Preuzmi fajl
-                </a>
+                </button>
 
                 {selectedMaterial.uploaderId === user.id && (
                   <>
@@ -868,17 +883,15 @@ export default function Materials() {
                       {/* Akcije */}
                       <div style={{ display: 'flex', gap: '8px' }}>
                         
-                         <a href={material.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                         <button onClick={() => handleDownload(material.id)}
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            padding: '8px', borderRadius: '10px', textDecoration: 'none',
+                            padding: '8px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                             background: 'linear-gradient(135deg, #FF6B35, #FFB800)',
                             color: 'white', fontWeight: '700', fontSize: '13px',
                           }}>
                           ⬇️ Preuzmi
-                        </a>
+                        </button>
                         {!material.isOwn && (
                           <button
                             onClick={() => material.isSaved ? handleUnsave(material.id) : handleSave(material.id)}

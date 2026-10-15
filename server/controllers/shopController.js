@@ -50,7 +50,7 @@ const getItems = async (req, res) => {
 
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -63,7 +63,7 @@ const getItemById = async (req, res) => {
         seller: {
           select: {
             id: true, firstName: true, lastName: true,
-            faculty: true, email: true, profileImage: true,
+            faculty: true, profileImage: true,
           }
         }
       }
@@ -72,7 +72,7 @@ const getItemById = async (req, res) => {
     if (!item) return res.status(404).json({ message: 'Oglas nije pronađen' })
     res.json(item)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -122,8 +122,8 @@ const createItem = async (req, res) => {
 
     res.status(201).json({ message: 'Oglas kreiran uspješno!', item })
   } catch (error) {
-    console.error('createItem greška:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Shop item creation failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -147,7 +147,7 @@ const updateItem = async (req, res) => {
 
     res.json({ message: 'Oglas ažuriran!', item: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -164,7 +164,7 @@ const deleteItem = async (req, res) => {
     await prisma.shopItem.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } })
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -177,7 +177,7 @@ const getMyItems = async (req, res) => {
     })
     res.json(items)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

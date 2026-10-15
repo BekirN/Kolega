@@ -40,6 +40,8 @@ export default function Admin() {
   const [content, setContent] = useState([])
   const [contentType, setContentType] = useState('shop')
   const [verifications, setVerifications] = useState([])
+  const [verificationImageUrls, setVerificationImageUrls] = useState({})
+  const [verificationImageLoading, setVerificationImageLoading] = useState(null)
   const [companies, setCompanies] = useState([])
   const [rejectNote, setRejectNote] = useState({})
   const [loading, setLoading] = useState(false)
@@ -87,11 +89,10 @@ export default function Admin() {
   useEffect(() => {
     if (user.role !== 'ADMIN') { navigate('/dashboard'); return }
     fetchStats()
-  }, [])
+  }, [navigate, user.role])
 
   useEffect(() => {
     if (activeTab === 'users') fetchUsers()
-    else if (activeTab === 'content') fetchContent(contentType)
     else if (activeTab === 'verifications') fetchVerifications()
     else if (activeTab === 'dashboard') fetchStats()
     else if (activeTab === 'companies') fetchCompanies()
@@ -99,7 +100,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === 'content') fetchContent(contentType)
-  }, [contentType])
+  }, [activeTab, contentType])
 
   // Zatvori dropdown kada klikneš van
   useEffect(() => {
@@ -143,8 +144,19 @@ export default function Admin() {
     try {
       const { data } = await api.get('/admin/verifications')
       setVerifications(data)
+      setVerificationImageUrls({})
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
+  }
+
+  const handleViewIndexImage = async (id) => {
+    setVerificationImageLoading(id)
+    try {
+      const { data } = await api.get(`/admin/verifications/${id}/index-image`)
+      setVerificationImageUrls(prev => ({ ...prev, [id]: data.url }))
+    } catch (err) {
+      alert(err.response?.data?.message || 'Sliku indeksa nije moguće učitati')
+    } finally { setVerificationImageLoading(null) }
   }
 
   const fetchCompanies = async () => {
@@ -205,6 +217,11 @@ export default function Admin() {
     try {
       await api.put(`/admin/verifications/${id}`, { action, note: rejectNote[id] || '' })
       setVerifications(prev => prev.filter(v => v.id !== id))
+      setVerificationImageUrls(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
       showSuccess(action === 'approve' ? '✓ Verifikacija odobrena!' : '✕ Verifikacija odbijena!')
       fetchStats()
     } catch (err) {
@@ -852,10 +869,25 @@ export default function Admin() {
                         </div>
                         <div>
                           <p style={{ fontSize: '11px', fontWeight: '700', color: '#636366', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Slika indeksa</p>
-                          {v.indexImage ? (
-                            <a href={v.indexImage} target="_blank" rel="noreferrer">
-                              <img src={v.indexImage} alt="Indeks" style={{ width: '100%', maxHeight: '260px', objectFit: 'contain', borderRadius: '14px', border: '1px solid #3A3A3C', background: '#1C1C1E', cursor: 'zoom-in' }} />
-                            </a>
+                          {v.hasIndexImage ? (
+                            verificationImageUrls[v.id] ? (
+                              <a href={verificationImageUrls[v.id]} target="_blank" rel="noreferrer">
+                                <img
+                                  src={verificationImageUrls[v.id]}
+                                  alt="Indeks"
+                                  onError={() => setVerificationImageUrls(prev => ({ ...prev, [v.id]: null }))}
+                                  style={{ width: '100%', maxHeight: '260px', objectFit: 'contain', borderRadius: '14px', border: '1px solid #3A3A3C', background: '#1C1C1E', cursor: 'zoom-in' }}
+                                />
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => handleViewIndexImage(v.id)}
+                                disabled={verificationImageLoading === v.id}
+                                style={{ ...btn('#3A3A3C'), width: '100%', minHeight: '120px' }}
+                              >
+                                {verificationImageLoading === v.id ? 'Učitavam sliku...' : 'Prikaži sliku indeksa'}
+                              </button>
+                            )
                           ) : (
                             <div style={{ height: '120px', borderRadius: '14px', border: '2px dashed #3A3A3C', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#636366', fontSize: '13px' }}>Nema slike</div>
                           )}

@@ -1,12 +1,12 @@
 ﻿import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getConversations, getOrCreateConversation, getMessages, uploadFile } from '../api/chat'
+import { getConversations, getOrCreateConversation, getMessages, getMessageFileDownloadUrl, uploadFile } from '../api/chat'
 import { sendConnectionRequest } from '../api/connections'
 import ChatDetails from '../components/ChatDetails'
 import CreateGroupModal from '../components/CreateGroupModal'
 import { getSocket } from '../services/socket'
-import { useNotifications } from '../context/NotificationContext'
-import { saveMaterial } from '../api/materials'
+import { useNotifications } from '../context/useNotifications'
+import { saveChatMessageToLibrary } from '../api/materials'
 
 export default function Chat() {
   const { userId } = useParams()
@@ -38,8 +38,10 @@ export default function Chat() {
   const activeConvRef = useRef(null)
   const conversationsRef = useRef([])
   const openRequestIdRef = useRef(0)
+  const openConversationRef = useRef(null)
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const currentUserId = user.id
 
   useEffect(() => { conversationsRef.current = conversations }, [conversations])
 
@@ -66,7 +68,7 @@ export default function Chat() {
           return [...prev, message]
         })
       }
-      const isMyMessage = message.sender?.id === user.id || message.senderId === user.id
+      const isMyMessage = message.sender?.id === currentUserId || message.senderId === currentUserId
       if (!isMyMessage && activeConvRef.current?.id !== message.conversationId) {
         setConversations(prev => prev.map(conv =>
           conv.id === message.conversationId
@@ -94,7 +96,7 @@ export default function Chat() {
       socket.off('user_typing', handleTypingStart)
       socket.off('user_stop_typing', handleTypingStop)
     }
-  }, [])
+  }, [currentUserId])
 
   useEffect(() => {
     const init = async () => {
@@ -105,7 +107,7 @@ export default function Chat() {
           !c.isGroup && c.participants.some(p => p.user?.id === userId)
         )
         if (existing) {
-          await openConversation(existing)
+          await openConversationRef.current(existing)
         } else {
           try {
             const conv = await getOrCreateConversation(userId)
@@ -113,7 +115,7 @@ export default function Chat() {
               const exists = prev.some(c => c.id === conv.id)
               return exists ? prev : [conv, ...prev]
             })
-            await openConversation(conv)
+            await openConversationRef.current(conv)
           } catch (err) {
             // ─── Blocked – nisu Kolege ────────────────────────────
             if (err.response?.data?.code === 'NOT_CONNECTED') {
@@ -133,7 +135,7 @@ export default function Chat() {
       setLoading(false)
     }
     init()
-  }, [userId])
+  }, [userId, fetchConversations])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -149,7 +151,7 @@ export default function Chat() {
       activeConvRef.current = null
       setActiveConversationId(null)
     }
-  }, [])
+  }, [setActiveConversationId])
 
   useEffect(() => {
     if (saveToast) {
@@ -188,6 +190,7 @@ export default function Chat() {
       console.error(err)
     }
   }
+  openConversationRef.current = openConversation
 
   const handleSend = async (e) => {
     e.preventDefault()
@@ -225,7 +228,7 @@ export default function Chat() {
     }
     setUploading(true)
     try {
-      const { fileUrl, fileType, fileName } = await uploadFile(file)
+      const { fileUrl, fileType, fileMimeType, fileName } = await uploadFile(file)
       const socket = getSocket()
       if (!socket) return
       socket.emit('send_message', {
@@ -233,6 +236,7 @@ export default function Chat() {
         content: fileName,
         fileUrl,
         fileType,
+        fileMimeType,
       })
     } catch {
       setUploadError('Greška pri uploadu.')
@@ -242,15 +246,32 @@ export default function Chat() {
     }
   }
 
+  const handleOpenMessageFile = async (event, messageId) => {
+    event.preventDefault()
+    const downloadWindow = window.open('about:blank', '_blank')
+    try {
+      const url = await getMessageFileDownloadUrl(activeConvRef.current.id, messageId)
+      if (downloadWindow) {
+        downloadWindow.opener = null
+        downloadWindow.location.replace(url)
+      } else {
+        window.location.assign(url)
+      }
+    } catch (err) {
+      downloadWindow?.close()
+      console.error(err)
+    }
+  }
+
   const handleSaveToLibrary = async (msg) => {
     if (savedMessages.has(msg.id) || savingMessage === msg.id) return
     setSavingMessage(msg.id)
     try {
-      await saveMaterial(msg.id, { source: 'CHAT' })
+      await saveChatMessageToLibrary(msg.id)
       setSavedMessages(prev => new Set([...prev, msg.id]))
       setSaveToast({ type: 'success', text: 'Sačuvano u biblioteku! 📚' })
     } catch (err) {
-      setSaveToast({ type: 'info', text: 'Preuzmi fajl i uploaduj ga u svoju biblioteku 📚' })
+      setSaveToast({ type: 'error', text: err.response?.data?.message || 'Fajl nije moguće sačuvati u biblioteku.' })
     } finally {
       setSavingMessage(null)
     }
@@ -669,12 +690,12 @@ export default function Chat() {
                                   boxShadow: isMine ? '0 2px 8px rgba(255,107,53,0.3)' : '0 1px 4px rgba(0,0,0,0.08)',
                                 }}>
                                 {msg.fileType === 'image' && msg.fileUrl && (
-                                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => handleOpenMessageFile(event, msg.id)}>
                                     <img src={msg.fileUrl} alt="slika" className="rounded-xl max-w-full cursor-pointer hover:opacity-90 transition" style={{ maxHeight: '220px', display: 'block' }} />
                                   </a>
                                 )}
                                 {msg.fileType === 'file' && msg.fileUrl && (
-                                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm transition hover:opacity-80">
+                                  <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => handleOpenMessageFile(event, msg.id)} className="flex items-center gap-2 text-sm transition hover:opacity-80">
                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                                       style={{ background: isMine ? 'rgba(255,255,255,0.2)' : '#FFF7ED' }}>📎</div>
                                     <span className="underline truncate max-w-40"
@@ -683,6 +704,9 @@ export default function Chat() {
                                 )}
                                 {!msg.fileType && (
                                   <p className="text-sm leading-relaxed">{msg.content}</p>
+                                )}
+                                {msg.fileUnavailable && (
+                                  <p className="text-sm leading-relaxed">Prilog nije dostupan.</p>
                                 )}
                               </div>
 

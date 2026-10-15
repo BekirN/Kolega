@@ -28,7 +28,7 @@ const createActivity = async ({
 
     return activity
   } catch (error) {
-    console.error('Greška pri kreiranju aktivnosti:', error)
+    console.error('Activity creation failed:', error.name || 'Unknown')
     return null
   }
 }

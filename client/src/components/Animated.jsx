@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useScrollAnimation } from '../hooks/useScrollAnimation'
 
 // Osnovna fade + slide animacija
@@ -107,8 +108,6 @@ export function AnimatedCounter({ value, suffix = '', prefix = '', duration = 20
     hasAnimated.current = true
 
     const start = Date.now()
-    const end = start + duration
-
     const tick = () => {
       const now = Date.now()
       const progress = Math.min((now - start) / duration, 1)
@@ -145,5 +144,3 @@ export function AnimatedLine({ delay = 0, style = {} }) {
     />
   )
 }
-
-import { useState } from 'react'

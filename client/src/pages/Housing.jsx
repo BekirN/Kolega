@@ -34,7 +34,6 @@ export default function Housing() {
   const [roommateOnly, setRoommateOnly] = useState(false)
   const [search, setSearch] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const fetchListings = async (reset = true) => {

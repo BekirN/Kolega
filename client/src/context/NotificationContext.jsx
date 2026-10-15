@@ -1,8 +1,8 @@
-﻿import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getSocket } from '../services/socket'
 
-const NotificationContext = createContext(null)
+import { NotificationContext } from './notificationContextValue'
 
 let sharedAudioCtx = null
 const getAudioContext = () => {
@@ -88,15 +88,15 @@ export function NotificationProvider({ children }) {
     })
   }
 
-  const setActiveConversationId = (id) => {
+  const setActiveConversationId = useCallback((id) => {
     activeConversationRef.current = id
-  }
+  }, [])
 
-  const registerUser = (socket) => {
+  const registerUser = useCallback((socket) => {
     if (!socket || !userId) return
     socket.emit('register_user', userId)
     registeredRef.current = true
-  }
+  }, [userId])
 
   useEffect(() => {
     if (!userId) return
@@ -244,7 +244,7 @@ export function NotificationProvider({ children }) {
       socket.off('new_activity', handleNewActivity)
       clearInterval(checkInterval)
     }
-  }, [userId])
+  }, [userId, registerUser])
 
   return (
     <NotificationContext.Provider value={{
@@ -286,11 +286,16 @@ export function NotificationProvider({ children }) {
 function NotificationToast({ notification, onClose, onAction }) {
   const [progress, setProgress] = useState(100)
   const [visible, setVisible] = useState(false)
+  const closeCallbackRef = useRef(onClose)
 
-  const handleClose = () => {
+  useEffect(() => {
+    closeCallbackRef.current = onClose
+  }, [onClose])
+
+  const handleClose = useCallback(() => {
     setVisible(false)
-    setTimeout(onClose, 300)
-  }
+    setTimeout(() => closeCallbackRef.current(), 300)
+  }, [])
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true))
@@ -304,7 +309,7 @@ function NotificationToast({ notification, onClose, onAction }) {
       })
     }, interval)
     return () => clearInterval(timer)
-  }, [])
+  }, [handleClose])
 
   const TYPE_CONFIG = {
     message: { bar: '#FF6B35', avatar: '#FF6B35' },
@@ -405,5 +410,3 @@ function NotificationToast({ notification, onClose, onAction }) {
     </div>
   )
 }
-
-export const useNotifications = () => useContext(NotificationContext)

@@ -78,7 +78,7 @@ const sendRequest = async (req, res) => {
 
     res.status(201).json({ message: 'Zahtjev poslan!', connection })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -164,8 +164,8 @@ const respondToRequest = async (req, res) => {
       connection: updated
     })
   } catch (error) {
-    console.error('respondToRequest greška:', error)
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    console.error('Connection response failed:', error.name || 'Unknown')
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 const getConnectionStatus = async (req, res) => {
@@ -184,7 +184,7 @@ const getConnectionStatus = async (req, res) => {
 
     res.json({ connection })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -201,7 +201,7 @@ const getPendingRequests = async (req, res) => {
     })
     res.json(requests)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -233,7 +233,7 @@ const getConnections = async (req, res) => {
 
     res.json(colleagues)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

@@ -1,8 +1,22 @@
 const { Resend } = require('resend')
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const isProduction = process.env.NODE_ENV === 'production'
+const resendApiKey = process.env.RESEND_API_KEY?.trim()
+const configuredFrom = process.env.RESEND_FROM_EMAIL?.trim()
+const senderAddress = configuredFrom?.match(/<([^>]+)>/)?.[1] || configuredFrom
+const validSenderAddress = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(senderAddress || '')
 
-const FROM = 'KOLEGA <onboarding@resend.dev>' // Besplatni Resend sender za testiranje
+if (isProduction && !resendApiKey) {
+  throw new Error('RESEND_API_KEY must be configured in production')
+}
+if (isProduction && (!configuredFrom || !validSenderAddress || senderAddress.toLowerCase().endsWith('@resend.dev'))) {
+  throw new Error('Set RESEND_FROM_EMAIL to an address on a verified sending domain in production')
+}
+
+const resend = new Resend(resendApiKey)
+const FROM = configuredFrom
+  ? (configuredFrom.includes('<') ? configuredFrom : `KOLEGA <${configuredFrom}>`)
+  : 'KOLEGA <onboarding@resend.dev>'
 
 const emailTemplate = (content) => `
 <!DOCTYPE html>
@@ -77,10 +91,9 @@ const emailTemplate = (content) => `
 const sendEmail = async (to, subject, html) => {
   try {
     const OWNER_EMAIL = process.env.RESEND_TEST_EMAIL
-    const isDev = process.env.NODE_ENV !== 'production'
-    const actualTo = isDev ? OWNER_EMAIL : to
+    const actualTo = !isProduction && OWNER_EMAIL ? OWNER_EMAIL : to
 
-    const finalSubject = isDev && to !== OWNER_EMAIL
+    const finalSubject = !isProduction && OWNER_EMAIL && to !== OWNER_EMAIL
       ? `[TEST → ${to}] ${subject}`
       : subject
 
@@ -92,14 +105,14 @@ const sendEmail = async (to, subject, html) => {
     })
 
     if (result.error) {
-      console.error('Resend greška:', result.error)
+      console.error('Resend rejected email send:', result.error.name || 'Unknown')
       throw new Error(result.error.message)
     }
 
-    console.log(`✉️  Email poslan: ${actualTo} | Subject: ${finalSubject}`)
+    console.log('Transactional email sent')
     return result
   } catch (err) {
-    console.error('Resend greška:', err)
+    console.error('Resend request failed:', err.name || 'Unknown')
     throw err
   }
 }

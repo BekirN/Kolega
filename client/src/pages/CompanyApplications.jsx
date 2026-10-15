@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getCompanyApplications, updateApplicationStatus } from '../api/internships'
+import {
+  getCompanyApplications,
+  getApplicationCvDownload,
+  updateApplicationStatus,
+} from '../api/internships'
 import { AnimatedSection, AnimatedScale, AnimatedBlur } from '../components/Animated'
 
 const STATUS_CONFIG = {
@@ -22,6 +26,7 @@ export default function CompanyApplications() {
   const [filter, setFilter] = useState('ALL')
   const [filterInternship, setFilterInternship] = useState('ALL')
   const [actionLoading, setActionLoading] = useState(null)
+  const [downloadingCv, setDownloadingCv] = useState(null)
   const [openNotes, setOpenNotes] = useState(null)
   const [noteText, setNoteText] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -62,6 +67,26 @@ export default function CompanyApplications() {
       alert(err.response?.data?.message || 'Greška')
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  const handleCvDownload = async (applicationId) => {
+    const downloadWindow = window.open('', '_blank')
+    if (!downloadWindow) {
+      alert('Dozvoli otvaranje novog prozora za preuzimanje CV-a.')
+      return
+    }
+    downloadWindow.opener = null
+
+    setDownloadingCv(applicationId)
+    try {
+      const { url } = await getApplicationCvDownload(applicationId)
+      downloadWindow.location.href = url
+    } catch (err) {
+      downloadWindow.close()
+      alert(err.response?.data?.message || 'CV nije moguće preuzeti')
+    } finally {
+      setDownloadingCv(null)
     }
   }
 
@@ -291,13 +316,17 @@ export default function CompanyApplications() {
                           <span style={{ fontSize: '12px', color: '#AEAEB2' }}>
                             📅 {new Date(app.createdAt).toLocaleDateString('bs-BA')}
                           </span>
-                          {app.cvUrl && (
-                            <a href={app.cvUrl} target="_blank" rel="noopener noreferrer" style={{
-                              fontSize: '12px', fontWeight: '600', color: '#0EA5E9',
-                              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                            }}>
-                              📄 Preuzmi CV
-                            </a>
+                          {app.hasCv && (
+                            <button
+                              onClick={() => handleCvDownload(app.id)}
+                              disabled={downloadingCv === app.id}
+                              style={{
+                                padding: 0, border: 'none', background: 'none',
+                                fontSize: '12px', fontWeight: '600', color: '#0EA5E9',
+                                cursor: downloadingCv === app.id ? 'wait' : 'pointer',
+                              }}>
+                              {downloadingCv === app.id ? 'Pripremam CV...' : '📄 Preuzmi CV'}
+                            </button>
                           )}
                         </div>
 

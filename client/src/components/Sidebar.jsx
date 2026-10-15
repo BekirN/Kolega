@@ -2,7 +2,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { searchUsers } from '../api/auth'
 import { disconnectSocket } from '../services/socket'
-import { useNotifications } from '../context/NotificationContext'
+import { useNotifications } from '../context/useNotifications'
 import { getUnreadCount } from '../api/activities'
 import { getUnreadMessagesCount } from '../api/chat'
 import ActivityPanel from './ActivityPanel'
@@ -152,13 +152,13 @@ export default function Sidebar() {
       }
     }
     if (user?.id) fetchCounts()
-  }, [user?.id])
+  }, [user?.id, setPendingCount, setUnreadMessagesCount])
 
   useEffect(() => {
     if (location.pathname.startsWith('/chat')) {
       setUnreadMessagesCount(0)
     }
-  }, [location.pathname])
+  }, [location.pathname, setUnreadMessagesCount])
 
   const handleLogout = () => {
     disconnectSocket()

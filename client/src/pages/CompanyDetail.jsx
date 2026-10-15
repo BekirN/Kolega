@@ -269,7 +269,7 @@ export default function CompanyDetail() {
         setCompany(companyData)
         setInternships(internshipsData)
         setMyApplications(applicationsData)
-      } catch (err) {
+      } catch {
         navigate('/companies')
       } finally {
         setLoading(false)

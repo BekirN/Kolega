@@ -36,7 +36,7 @@ const getJobs = async (req, res) => {
 
     res.json(jobs)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -48,7 +48,7 @@ const getJobById = async (req, res) => {
         author: {
           select: {
             id: true, firstName: true, lastName: true,
-            faculty: true, university: true, profileImage: true, email: true
+            faculty: true, university: true, profileImage: true
           }
         }
       }
@@ -57,7 +57,7 @@ const getJobById = async (req, res) => {
     if (!job) return res.status(404).json({ message: 'Oglas nije pronađen' })
     res.json(job)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -113,13 +113,13 @@ const createJob = async (req, res) => {
           )
         }
       } catch (emailErr) {
-        console.error('Email greška:', emailErr)
+        console.error('Job notification email failed:', emailErr.name || 'Unknown')
       }
     }
 
     res.status(201).json({ message: 'Oglas objavljen!', job })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -143,7 +143,7 @@ const updateJob = async (req, res) => {
 
     res.json({ message: 'Oglas ažuriran!', job: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -159,7 +159,7 @@ const deleteJob = async (req, res) => {
 
     res.json({ message: 'Oglas obrisan!' })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -171,7 +171,7 @@ const getMyJobs = async (req, res) => {
     })
     res.json(jobs)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

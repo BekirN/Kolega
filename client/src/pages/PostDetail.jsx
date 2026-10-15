@@ -32,7 +32,7 @@ export default function PostDetail() {
       try {
         const data = await getPostById(id)
         setPost(data)
-      } catch (err) {
+      } catch {
         navigate('/community')
       } finally {
         setLoading(false)

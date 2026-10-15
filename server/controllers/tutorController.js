@@ -55,7 +55,7 @@ const getTutors = async (req, res) => {
 
     res.json(tutorsWithRating)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -67,7 +67,7 @@ const getTutorById = async (req, res) => {
         user: {
           select: {
             id: true, firstName: true, lastName: true,
-            faculty: true, university: true, email: true,
+            faculty: true, university: true,
           }
         },
         reviews: { orderBy: { createdAt: 'desc' } },
@@ -93,7 +93,7 @@ const getTutorById = async (req, res) => {
       reviewCount: tutor.reviews.length,
     })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -126,7 +126,7 @@ const createTutorProfile = async (req, res) => {
 
     res.status(201).json({ message: 'Tutor profil kreiran!', tutor })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -153,7 +153,7 @@ const updateTutorProfile = async (req, res) => {
 
     res.json({ message: 'Profil ažuriran!', tutor: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -214,7 +214,7 @@ const createBooking = async (req, res) => {
 
     res.status(201).json({ message: 'Termin rezervisan!', booking })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -233,7 +233,7 @@ const getMyBookings = async (req, res) => {
     })
     res.json(bookings)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -253,7 +253,7 @@ const getTutorBookings = async (req, res) => {
     })
     res.json(bookings)
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -311,7 +311,7 @@ const updateBookingStatus = async (req, res) => {
             `${booking.tutor.user.firstName} ${booking.tutor.user.lastName}`
           )
         } catch (emailErr) {
-          console.error('Email greška (booking confirmed):', emailErr.message)
+          console.error('Booking confirmation email failed:', emailErr.name || 'Unknown')
         }
       }
 
@@ -338,14 +338,14 @@ const updateBookingStatus = async (req, res) => {
             `${booking.tutor.user.firstName} ${booking.tutor.user.lastName}`
           )
         } catch (emailErr) {
-          console.error('Email greška (booking cancelled):', emailErr.message)
+          console.error('Booking cancellation email failed:', emailErr.name || 'Unknown')
         }
       }
     }
 
     res.json({ message: 'Status ažuriran!', booking: updated })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 
@@ -366,7 +366,7 @@ const createTutorReview = async (req, res) => {
 
     res.status(201).json({ message: 'Recenzija dodana!', review })
   } catch (error) {
-    res.status(500).json({ message: 'Greška na serveru', error: error.message })
+    res.status(500).json({ message: 'Greška na serveru', error: process.env.NODE_ENV === 'production' ? undefined : error.message })
   }
 }
 

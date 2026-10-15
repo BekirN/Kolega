@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import { getActivities, markAllAsRead, markActivityAsRead } from '../api/activities'
 import { respondToRequest, getPendingRequests } from '../api/connections'
-import { useNotifications } from '../context/NotificationContext'
+import { useNotifications } from '../context/useNotifications'
 
 const ACTIVITY_ICONS = {
   CONNECTION_REQUEST: '🤝',
